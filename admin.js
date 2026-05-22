@@ -5,6 +5,114 @@
 
 const STORAGE_KEY = "chodza-admin-data-v1";
 const WINNERS_KEY = "chodza-winners-by-month";
+const SUBSCRIPTION_PRICE_EUR =
+  typeof ChodzaI18n !== "undefined" ? ChodzaI18n.SUBSCRIPTION_PRICE : 4.99;
+
+function ta(key, params) {
+  return typeof ChodzaI18n !== "undefined" ? ChodzaI18n.t(key, params, "admin") : key;
+}
+
+function applyAdminLanguage() {
+  if (typeof ChodzaI18n === "undefined") return;
+  ChodzaI18n.applyStatic(document);
+  document.title = ta("admin.title");
+  const price = ChodzaI18n.formatPrice();
+  document.querySelectorAll("[data-i18n-dynamic='prize-hint']").forEach((el) => {
+    el.textContent = ta("admin.prizeHint", { price });
+  });
+  const poolInput = document.getElementById("prize-pool-eur");
+  if (poolInput) poolInput.placeholder = ta("admin.prizePlaceholder");
+  if (allUsers.length) {
+    ChodzaAdminAPI.getMonthlySettings(monthKey).then((s) => renderRevenuePreview(allUsers, s));
+  }
+}
+
+function countPayingSubscribers(users) {
+  return users.filter((u) => u.status_predplatneho === "premium").length;
+}
+
+/** Manuálny kôš len ak je zadaná kladná suma; inak tržby z predplatiteľov */
+function resolvePrizeSource(settings, users) {
+  const manual = Number(settings.prizePoolEur);
+  const payingUsers = countPayingSubscribers(users);
+  if (Number.isFinite(manual) && manual > 0) {
+    return { mode: "manual", manualPool: manual, payingUsers };
+  }
+  const revenue = payingUsers * SUBSCRIPTION_PRICE_EUR;
+  return { mode: "revenue", manualPool: null, payingUsers, revenue };
+}
+
+function getPrizeBreakdown(payingUsers, manualPool) {
+  if (typeof ChodzaDraw === "undefined") return null;
+  if (manualPool != null && manualPool > 0) {
+    return ChodzaDraw.calculatePrizeAmounts({ manualPrizePool: manualPool });
+  }
+  return ChodzaDraw.calculatePrizeAmounts({
+    payingUsers,
+    priceMonthly: SUBSCRIPTION_PRICE_EUR,
+  });
+}
+
+function renderRevenuePreview(users, settings) {
+  const el = document.getElementById("revenue-preview");
+  const fieldset = document.getElementById("revenue-fieldset");
+  if (!el) return;
+
+  const source = resolvePrizeSource(settings, users);
+  const breakdown = getPrizeBreakdown(source.payingUsers, source.manualPool);
+  if (!breakdown) {
+    el.innerHTML = "<p class=\"admin-hint\">Načítava sa…</p>";
+    return;
+  }
+
+  const price = typeof ChodzaI18n !== "undefined" ? ChodzaI18n.formatPrice() : formatEur(SUBSCRIPTION_PRICE_EUR);
+  const isEn = ChodzaI18n?.getLang() === "en";
+
+  if (source.mode === "manual") {
+    fieldset?.classList.add("revenue-preview--manual-active");
+    el.innerHTML = isEn
+      ? `<p class="revenue-preview__lead"><strong>Manual pool ${formatEur(source.manualPool)}</strong> – subscription revenue is not used for the draw.</p>
+         <p class="admin-hint">Active subscribers: ${source.payingUsers} × ${price} = ${formatEur(source.payingUsers * SUBSCRIPTION_PRICE_EUR)} (info only)</p>`
+      : `<p class="revenue-preview__lead"><strong>Manuálny kôš ${formatEur(source.manualPool)}</strong> – tržby z predplatiteľov sa pri žrebovaní nepoužijú.</p>
+         <p class="admin-hint">Aktívnych predplatiteľov: ${source.payingUsers} × ${price} = ${formatEur(source.payingUsers * SUBSCRIPTION_PRICE_EUR)} (informačne)</p>`;
+    return;
+  }
+
+  fieldset?.classList.remove("revenue-preview--manual-active");
+  const rev = breakdown.revenue ?? source.revenue ?? 0;
+  const smallSlots = breakdown.smallCount ?? 97;
+  const smallTotal = (breakdown.smallPrizeEach ?? 0) * smallSlots;
+
+  if (isEn) {
+    el.innerHTML = `
+    <p class="revenue-preview__lead"><strong>${source.payingUsers}</strong> paying × <strong>${price}</strong>
+      = <strong class="revenue-preview__total">${formatEur(rev)}</strong> monthly revenue</p>
+    <div class="revenue-preview__table">
+      <div class="revenue-preview__row revenue-preview__row--owner"><span>For you (45 %)</span><strong>${formatEur(breakdown.ownerAmount)}</strong></div>
+      <div class="revenue-preview__row"><span>1st prize (15 %)</span><strong>${formatEur(breakdown.firstPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>2nd prize (10 %)</span><strong>${formatEur(breakdown.secondPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>3rd prize (6 %)</span><strong>${formatEur(breakdown.thirdPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>97× smaller prize (24 % total)</span><strong>${formatEur(breakdown.smallPrizeEach)} each</strong></div>
+      <div class="revenue-preview__row revenue-preview__row--sub"><span>Total 97 smaller prizes</span><span>${formatEur(smallTotal)}</span></div>
+      <div class="revenue-preview__row revenue-preview__row--sum"><span>Prizes total (55 %)</span><strong>${formatEur(rev - breakdown.ownerAmount)}</strong></div>
+    </div>
+    <p class="admin-hint">Used when closing the month if the prize fund field is empty.</p>`;
+  } else {
+    el.innerHTML = `
+    <p class="revenue-preview__lead"><strong>${source.payingUsers}</strong> platiacich × <strong>${price}</strong>
+      = <strong class="revenue-preview__total">${formatEur(rev)}</strong> tržby za mesiac</p>
+    <div class="revenue-preview__table">
+      <div class="revenue-preview__row revenue-preview__row--owner"><span>Pre vás (45 %)</span><strong>${formatEur(breakdown.ownerAmount)}</strong></div>
+      <div class="revenue-preview__row"><span>1. cena (15 %)</span><strong>${formatEur(breakdown.firstPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>2. cena (10 %)</span><strong>${formatEur(breakdown.secondPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>3. cena (6 %)</span><strong>${formatEur(breakdown.thirdPrize)}</strong></div>
+      <div class="revenue-preview__row"><span>97× menšia cena (24 % celkom)</span><strong>${formatEur(breakdown.smallPrizeEach)} / osoba</strong></div>
+      <div class="revenue-preview__row revenue-preview__row--sub"><span>Súčet 97 menších cien</span><span>${formatEur(smallTotal)}</span></div>
+      <div class="revenue-preview__row revenue-preview__row--sum"><span>Výhry spolu (55 %)</span><strong>${formatEur(rev - breakdown.ownerAmount)}</strong></div>
+    </div>
+    <p class="admin-hint">Toto sa použije pri uzatvorení mesiaca, ak pole výšky výhry necháš prázdne.</p>`;
+  }
+}
 
 /** @type {boolean} */
 const ChodzaAdminAPI = {
@@ -168,7 +276,7 @@ const MockStore = {
     }
     return {
       monthKey,
-      prizePoolEur: 1500,
+      prizePoolEur: 0,
       goalType: "walk_km",
       goalKmPerPoint: 10,
       maxPointsPerDay: 3,
@@ -194,7 +302,7 @@ const MockStore = {
     return users;
   },
 
-  closeMonth(monthKey, poolEur) {
+  closeMonth(monthKey, poolEur, drawOptions) {
     const data = this.load();
     const users = data.users;
     const participants = users.map((u) => ({
@@ -204,7 +312,8 @@ const MockStore = {
       streak_of_loss: u.streak_of_loss ?? 0,
     }));
 
-    const draw = window.ChodzaDraw.runMonthlyDraw(participants, monthKey, poolEur);
+    const manualPool = poolEur > 0 ? poolEur : null;
+    const draw = window.ChodzaDraw.runMonthlyDraw(participants, monthKey, manualPool, drawOptions);
 
     for (const u of users) {
       const streakUpd = draw.streakUpdates.find((s) => s.userId === u.id);
@@ -272,16 +381,39 @@ let filteredUsers = [];
 const monthKey = currentMonthKey();
 
 async function init() {
-  document.getElementById("admin-month-label").textContent =
-    `Aktuálny mesiac: ${formatMonthLabel(monthKey)}`;
+  const langSel = document.getElementById("admin-language");
+  if (langSel) {
+    langSel.value = ChodzaI18n?.getLang() ?? "sk";
+    langSel.addEventListener("change", () => {
+      ChodzaI18n.setLang(langSel.value);
+      applyAdminLanguage();
+    });
+  }
+  applyAdminLanguage();
+  document.getElementById("admin-month-label").textContent = ta("admin.currentMonth", {
+    month: formatMonthLabel(monthKey),
+  });
   await loadSettingsForm();
   await refreshUsersTable();
   bindEvents();
 }
 
 async function loadSettingsForm() {
+  if (typeof ChodzaSettings !== "undefined" && location.hash) {
+    const fromHash = ChodzaSettings.decodeHash();
+    if (fromHash) {
+      await ChodzaAdminAPI.saveMonthlySettings(monthKey, {
+        goalType: "walk_km",
+        goalKmPerPoint: fromHash.goalKmPerPoint,
+        maxPointsPerDay: fromHash.maxPointsPerDay,
+        prizePoolEur: fromHash.prizePoolEur,
+      });
+    }
+  }
+
   const s = await ChodzaAdminAPI.getMonthlySettings(monthKey);
-  document.getElementById("prize-pool-eur").value = s.prizePoolEur ?? 1500;
+  document.getElementById("prize-pool-eur").value =
+    s.prizePoolEur > 0 ? String(s.prizePoolEur) : "";
   document.getElementById("goal-type").value = s.goalType || "walk_km";
   document.getElementById("goal-km").value = s.goalKmPerPoint ?? 10;
   document.getElementById("max-points").value = s.maxPointsPerDay ?? 3;
@@ -290,6 +422,14 @@ async function loadSettingsForm() {
 
 function bindEvents() {
   document.getElementById("month-settings-form").addEventListener("submit", onSaveSettings);
+  document.getElementById("prize-pool-eur")?.addEventListener("input", () => {
+    const settings = {
+      prizePoolEur: Number(document.getElementById("prize-pool-eur").value) || 0,
+      goalKmPerPoint: Number(document.getElementById("goal-km").value) || 10,
+      maxPointsPerDay: Number(document.getElementById("max-points").value) || 3,
+    };
+    renderRevenuePreview(allUsers, settings);
+  });
   document.getElementById("user-search").addEventListener("input", onSearch);
   document.getElementById("btn-close-month").addEventListener("click", onCloseMonth);
   document.getElementById("modal-close").addEventListener("click", () => {
@@ -313,15 +453,16 @@ async function onSaveSettings(e) {
   status.textContent = "";
   status.classList.remove("admin-form__status--error");
 
+  const poolRaw = document.getElementById("prize-pool-eur").value.trim();
   const payload = {
-    prizePoolEur: Number(document.getElementById("prize-pool-eur").value),
+    prizePoolEur: poolRaw === "" ? 0 : Number(poolRaw),
     goalType: document.getElementById("goal-type").value,
     goalKmPerPoint: Number(document.getElementById("goal-km").value),
     maxPointsPerDay: Number(document.getElementById("max-points").value),
   };
 
   if (!Number.isFinite(payload.prizePoolEur) || payload.prizePoolEur < 0) {
-    status.textContent = "Zadajte platnú sumu koša v eurách.";
+    status.textContent = "Suma koša musí byť 0 alebo viac (prázdne = z predplatiteľov).";
     status.classList.add("admin-form__status--error");
     return;
   }
@@ -338,23 +479,29 @@ async function onSaveSettings(e) {
   const appUrl =
     typeof ChodzaSettings !== "undefined" ? ChodzaSettings.indexUrlFor(saved) : "index.html";
 
-  status.textContent = `Uložené. Otváram aplikáciu…`;
+  status.textContent =
+    ChodzaI18n?.getLang() === "en"
+      ? "Saved. Opening app…"
+      : "Uložené. Otváram aplikáciu…";
   status.classList.remove("admin-form__status--error");
 
   window.setTimeout(() => {
     window.location.href = appUrl;
-  }, 400);
+  }, 450);
 }
 
 function updateBackToAppLink(settings) {
   const a = document.querySelector(".admin-sidebar__back");
   if (!a || !settings) return;
-  a.href =
+  const url =
     typeof ChodzaSettings !== "undefined" ? ChodzaSettings.indexUrlFor(settings) : "index.html";
-  a.onclick = () => {
+  a.href = url;
+  a.onclick = (e) => {
+    e.preventDefault();
     if (typeof ChodzaSettings !== "undefined") {
       ChodzaSettings.write(settings.monthKey || monthKey, settings);
     }
+    window.location.href = url;
   };
 }
 
@@ -376,6 +523,7 @@ async function refreshUsersTable() {
   allUsers = recalcUsersFromWalks(allUsers, settings);
   await ChodzaAdminAPI.saveUsers(allUsers);
   filteredUsers = [...allUsers];
+  renderRevenuePreview(allUsers, settings);
   onSearch();
 }
 
@@ -489,12 +637,23 @@ async function openUserModal(userId) {
 
 async function onCloseMonth() {
   const settings = await ChodzaAdminAPI.getMonthlySettings(monthKey);
-  const pool = settings.prizePoolEur;
+  const source = resolvePrizeSource(settings, allUsers);
+  const breakdown = getPrizeBreakdown(source.payingUsers, source.manualPool);
   const withPoints = allUsers.filter((u) => u.mesacneBody > 0).length;
+
+  let fundText;
+  if (source.mode === "manual") {
+    fundText = `Manuálny kôš: ${formatEur(source.manualPool)}`;
+  } else {
+    fundText =
+      `Tržby: ${source.payingUsers} × ${formatEur(SUBSCRIPTION_PRICE_EUR)} = ${formatEur(source.revenue)}\n` +
+      `Pre vás 45 %: ${formatEur(breakdown?.ownerAmount ?? 0)}\n` +
+      `Výhry: 1. ${formatEur(breakdown?.firstPrize)} / 2. ${formatEur(breakdown?.secondPrize)} / 3. ${formatEur(breakdown?.thirdPrize)} / 97× ${formatEur(breakdown?.smallPrizeEach)}`;
+  }
 
   const ok = confirm(
     `Uzatvoriť ${formatMonthLabel(monthKey)}?\n\n` +
-      `Fond výhier: ${formatEur(pool)}\n` +
+      `${fundText}\n` +
       `Účastníci s bodmi v koši: ${withPoints}\n\n` +
       `Všetkým sa vynulujú mesačné body. Pokračovať?`
   );
@@ -505,8 +664,12 @@ async function onCloseMonth() {
   btn.textContent = "Žrebujem…";
 
   try {
-    const { draw } = await ChodzaAdminAPI.closeMonth(monthKey, pool);
-    renderDrawResults(draw, pool);
+    const poolForStore = source.manualPool ?? 0;
+    const { draw } = await ChodzaAdminAPI.closeMonth(monthKey, poolForStore, {
+      payingUsers: source.payingUsers,
+      priceMonthly: SUBSCRIPTION_PRICE_EUR,
+    });
+    renderDrawResults(draw, source);
     await refreshUsersTable();
     document.getElementById("settings-save-status").textContent =
       `Mesiac ${formatMonthLabel(monthKey)} uzatvorený. Mesačné body vynulované.`;
@@ -518,16 +681,99 @@ async function onCloseMonth() {
   }
 }
 
-function renderDrawResults(draw, poolEur) {
+function renderDrawResults(draw, prizeSource) {
   const block = document.getElementById("draw-results");
   block.hidden = false;
+  const p = draw.prizes || {};
+  const smallSlots = p.smallCount ?? 97;
+  const smallDrawn = draw.small?.length ?? 0;
+  const smallEach = p.smallPrizeEach ?? 0;
+  const smallTotal = smallEach * smallSlots;
+  const prizesTotal =
+    (p.firstPrize ?? 0) + (p.secondPrize ?? 0) + (p.thirdPrize ?? 0) + smallTotal;
+
+  const fundLabel =
+    prizeSource.mode === "revenue"
+      ? `tržby ${formatEur(p.revenue ?? prizeSource.revenue)} (${prizeSource.payingUsers} × ${formatEur(SUBSCRIPTION_PRICE_EUR)})`
+      : `manuálny kôš ${formatEur(prizeSource.manualPool)}`;
+
   document.getElementById("draw-results-meta").textContent =
-    `${formatMonthLabel(draw.monthKey)} · fond ${formatEur(poolEur)} · ` +
-    `${draw.participantCount} hráčov · ${draw.basketSize ?? draw.poolTicketCount} lístkov v osudí (pity 1.5^n)` +
+    `${formatMonthLabel(draw.monthKey)} · ${fundLabel} · ` +
+    `${draw.participantCount} hráčov · ${draw.basketSize ?? draw.poolTicketCount} lístkov v osudí` +
     (draw.warning ? ` · ${draw.warning}` : "");
+
+  const revenueHeader =
+    prizeSource.mode === "revenue"
+      ? `
+    <div class="draw-prize-summary__revenue">
+      <p><strong>${prizeSource.payingUsers}</strong> predplatiteľov × <strong>${formatEur(SUBSCRIPTION_PRICE_EUR)}</strong>
+        = <strong>${formatEur(p.revenue ?? prizeSource.revenue)}</strong></p>
+    </div>
+    <div class="draw-prize-summary__row draw-prize-summary__row--owner">
+      <span>Pre vás (45 % tržieb)</span>
+      <strong>${formatEur(p.ownerAmount)}</strong>
+    </div>`
+      : `
+    <p class="admin-hint draw-prize-summary__manual-note">Manuálny kôš – suma rozdelená len medzi výhercov (15/55, 10/55, 6/55, 24/55).</p>`;
+
+  const ownerLine =
+    prizeSource.mode === "revenue" && p.ownerAmount > 0
+      ? ""
+      : p.ownerAmount > 0
+        ? `<div class="draw-prize-summary__row draw-prize-summary__row--owner">
+             <span>Pre vás</span>
+             <strong>${formatEur(p.ownerAmount)}</strong>
+           </div>`
+        : "";
+
+  const pctLabel = (pct) =>
+    prizeSource.mode === "revenue" ? ` <span class="draw-prize-summary__pct">(${pct} % tržieb)</span>` : "";
+
+  document.getElementById("draw-prize-summary").innerHTML = `
+    <h4 class="draw-prize-summary__title">Rozdelenie peňazí podľa miest</h4>
+    ${revenueHeader}
+    <div class="draw-prize-summary__table">
+      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
+        <span>1. miesto – hlavná cena${pctLabel(15)}</span>
+        <strong>${formatEur(p.firstPrize ?? 0)}</strong>
+      </div>
+      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
+        <span>2. miesto – hlavná cena${pctLabel(10)}</span>
+        <strong>${formatEur(p.secondPrize ?? 0)}</strong>
+      </div>
+      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
+        <span>3. miesto – hlavná cena${pctLabel(6)}</span>
+        <strong>${formatEur(p.thirdPrize ?? 0)}</strong>
+      </div>
+      <div class="draw-prize-summary__row">
+        <span>97× menšia cena (na osobu)${pctLabel(24)}</span>
+        <strong>${formatEur(smallEach)}</strong>
+      </div>
+      <div class="draw-prize-summary__row draw-prize-summary__row--sub">
+        <span>Celkom za 97 menších cien</span>
+        <span>${formatEur(smallTotal)}</span>
+      </div>
+      <div class="draw-prize-summary__row draw-prize-summary__row--total">
+        <span>Spolu výhry z fondu (3 + ${smallSlots} miest)</span>
+        <strong>${formatEur(prizesTotal)}</strong>
+      </div>
+      ${ownerLine}
+    </div>
+    <p class="admin-hint draw-prize-summary__hint">Nižšie je zoznam konkrétnych výhercov s priradenou sumou.</p>
+  `;
 
   const fmtVirtual = (w) =>
     `virtual ${w.virtual_points?.toFixed?.(1) ?? w.virtual_points} → ${w.basketTickets} lístkov`;
+
+  const mainHead = document.querySelector("#draw .draw-panel h4");
+  if (mainHead) {
+    mainHead.textContent =
+      `Hlavné ceny (3) — 1.: ${formatEur(p.firstPrize)}, 2.: ${formatEur(p.secondPrize)}, 3.: ${formatEur(p.thirdPrize)}`;
+  }
+  const smallHead = document.querySelectorAll("#draw .draw-panel h4")[1];
+  if (smallHead) {
+    smallHead.textContent = `Menšie ceny (${smallDrawn} vyžrebovaných / ${smallSlots}) — po ${formatEur(smallEach)}`;
+  }
 
   document.getElementById("draw-main-list").innerHTML = draw.main
     .map(

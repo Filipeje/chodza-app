@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#3d5c3b" />
-    <title>Chôdza – Admin</title>
+    <title data-i18n="admin.title" data-i18n-ns="admin">Chôdza – Admin</title>
     <link rel="stylesheet" href="admin.css" />
   </head>
   <body>
@@ -15,44 +15,50 @@
           <span class="admin-brand__icon" aria-hidden="true">🚶</span>
           <div>
             <strong>Chôdza</strong>
-            <span class="admin-brand__sub">Administrácia</span>
+            <span class="admin-brand__sub" data-i18n="admin.brand" data-i18n-ns="admin">Administrácia</span>
           </div>
         </div>
+        <label class="admin-lang">
+          <span data-i18n="admin.language" data-i18n-ns="admin">Jazyk</span>
+          <select id="admin-language">
+            <option value="sk" data-i18n="admin.langSk" data-i18n-ns="admin">Slovenčina</option>
+            <option value="en" data-i18n="admin.langEn" data-i18n-ns="admin">English</option>
+          </select>
+        </label>
         <nav class="admin-nav" aria-label="Sekcie">
-          <a href="#settings" class="admin-nav__link admin-nav__link--active">Mesačné nastavenia</a>
-          <a href="#users" class="admin-nav__link">Používatelia</a>
-          <a href="#draw" class="admin-nav__link">Uzatvorenie mesiaca</a>
+          <a href="#settings" class="admin-nav__link admin-nav__link--active" data-i18n="admin.nav.settings" data-i18n-ns="admin">Mesačné nastavenia</a>
+          <a href="#users" class="admin-nav__link" data-i18n="admin.nav.users" data-i18n-ns="admin">Používatelia</a>
+          <a href="#draw" class="admin-nav__link" data-i18n="admin.nav.draw" data-i18n-ns="admin">Uzatvorenie mesiaca</a>
         </nav>
         <p class="admin-sidebar__foot">
-          <span class="badge badge--demo">Demo dáta</span><br />
-          Pripravené na Supabase
+          <span class="badge badge--demo" data-i18n="admin.demo" data-i18n-ns="admin">Demo dáta</span><br />
+          <span data-i18n="admin.ready" data-i18n-ns="admin">Pripravené na Supabase</span>
         </p>
-        <a href="index.html" class="admin-sidebar__back">← Späť do aplikácie</a>
+        <a href="index.html" class="admin-sidebar__back" data-i18n="admin.back" data-i18n-ns="admin">← Späť do aplikácie</a>
       </aside>
 
       <div class="admin-main">
         <header class="admin-topbar">
           <div>
-            <h1 class="admin-topbar__title">Správa platformy</h1>
+            <h1 class="admin-topbar__title" data-i18n="admin.platform" data-i18n-ns="admin">Správa platformy</h1>
             <p class="admin-topbar__meta" id="admin-month-label"></p>
           </div>
           <div class="admin-topbar__actions">
-            <span class="badge" id="data-source-badge">Mock API</span>
+            <span class="badge" id="data-source-badge" data-i18n="admin.mockApi" data-i18n-ns="admin">Mock API</span>
           </div>
         </header>
 
         <main class="admin-content">
-          <!-- Globálne nastavenia mesiaca -->
           <section class="admin-card" id="settings">
             <div class="admin-card__head">
-              <h2>Správa aktuálneho mesiaca</h2>
-              <p class="admin-card__desc">Globálne nastavenia platné pre všetkých používateľov v tomto mesiaci.</p>
+              <h2 data-i18n="admin.monthSettings" data-i18n-ns="admin">Správa aktuálneho mesiaca</h2>
+              <p class="admin-card__desc" data-i18n="admin.monthDesc" data-i18n-ns="admin">Globálne nastavenia platné pre všetkých používateľov v tomto mesiaci.</p>
             </div>
             <form class="admin-form" id="month-settings-form" novalidate>
               <div class="admin-form__grid">
                 <fieldset class="admin-fieldset">
-                  <legend>Finančný mesačný kôš</legend>
-                  <label class="admin-label" for="prize-pool-eur">Výška finančnej výhry (€)</label>
+                  <legend data-i18n="admin.prizeLegend" data-i18n-ns="admin">Finančný mesačný kôš</legend>
+                  <label class="admin-label" for="prize-pool-eur" data-i18n="admin.prizeLabel" data-i18n-ns="admin">Výška finančnej výhry (€)</label>
                   <div class="admin-input-wrap">
                     <input
                       type="number"
@@ -60,51 +66,50 @@
                       name="prizePoolEur"
                       min="0"
                       step="0.01"
-                      required
-                      placeholder="1500"
+                      data-i18n-placeholder="admin.prizePlaceholder"
+                      data-i18n-ns="admin"
                     />
                     <span class="admin-input-suffix">€</span>
                   </div>
-                  <p class="admin-hint">Suma rozdelená medzi 3 hlavné a 97 menších cien (podiely nie sú verejné).</p>
+                  <p class="admin-hint" data-i18n="admin.prizeHint" data-i18n-ns="admin" data-i18n-dynamic="prize-hint"></p>
+                </fieldset>
+
+                <fieldset class="admin-fieldset admin-fieldset--revenue" id="revenue-fieldset">
+                  <legend data-i18n="admin.revenueLegend" data-i18n-ns="admin">Tržby z predplatného (náhľad)</legend>
+                  <div id="revenue-preview" class="revenue-preview" aria-live="polite"></div>
                 </fieldset>
 
                 <fieldset class="admin-fieldset">
-                  <legend>Obtiažnosť bodu</legend>
-                  <label class="admin-label" for="goal-type">Typ cieľa</label>
+                  <legend data-i18n="admin.goalLegend" data-i18n-ns="admin">Obtiažnosť bodu</legend>
+                  <label class="admin-label" for="goal-type" data-i18n="admin.goalType" data-i18n-ns="admin">Typ cieľa</label>
                   <select id="goal-type" name="goalType">
-                    <option value="walk_km" selected>Chôdza v km</option>
+                    <option value="walk_km" selected data-i18n="admin.goalWalk" data-i18n-ns="admin">Chôdza v km</option>
                   </select>
-                  <label class="admin-label" for="goal-km">Km na 1 bod</label>
+                  <label class="admin-label" for="goal-km" data-i18n="admin.kmPerPoint" data-i18n-ns="admin">Km na 1 bod</label>
                   <div class="admin-input-wrap">
                     <input type="number" id="goal-km" name="goalKmPerPoint" min="1" max="50" step="0.5" required />
                     <span class="admin-input-suffix">km</span>
                   </div>
-                  <label class="admin-label" for="max-points">Max. bodov za deň</label>
+                  <label class="admin-label" for="max-points" data-i18n="admin.maxPerDay" data-i18n-ns="admin">Max. bodov za deň</label>
                   <input type="number" id="max-points" name="maxPointsPerDay" min="1" max="10" value="3" required />
                 </fieldset>
               </div>
               <div class="admin-form__actions">
-                <button type="submit" class="btn btn--primary">Uložiť nastavenia pre tento mesiac</button>
+                <button type="submit" class="btn btn--primary" data-i18n="admin.save" data-i18n-ns="admin">Uložiť nastavenia pre tento mesiac</button>
                 <p class="admin-form__status" id="settings-save-status" role="status" aria-live="polite"></p>
               </div>
             </form>
           </section>
 
-          <!-- Používatelia -->
           <section class="admin-card" id="users">
             <div class="admin-card__head admin-card__head--row">
               <div>
-                <h2>Používatelia</h2>
-                <p class="admin-card__desc">Prehľad registrovaných účtov a bodov v aktuálnom mesiaci.</p>
+                <h2 data-i18n="admin.users" data-i18n-ns="admin">Používatelia</h2>
+                <p class="admin-card__desc" data-i18n="admin.usersDesc" data-i18n-ns="admin">Prehľad registrovaných účtov a bodov v aktuálnom mesiaci.</p>
               </div>
               <div class="admin-search">
                 <label class="visually-hidden" for="user-search">Hľadať</label>
-                <input
-                  type="search"
-                  id="user-search"
-                  placeholder="Meno alebo e-mail…"
-                  autocomplete="off"
-                />
+                <input type="search" id="user-search" data-i18n-placeholder="admin.search" data-i18n-ns="admin" autocomplete="off" />
               </div>
             </div>
             <div class="admin-table-wrap">
@@ -127,26 +132,21 @@
             </div>
           </section>
 
-          <!-- Uzatvorenie mesiaca -->
           <section class="admin-card" id="draw">
             <div class="admin-card__head">
-              <h2>Simulácia uzatvorenia mesiaca</h2>
-              <p class="admin-card__desc">
-                Spustí žrebovanie (3 hlavné + 97 menších cien), pity timer 1.5^n a vynuluje mesačné body.
-                Od 1. dňa mesiaca sa body znova zbierajú od nuly.
-              </p>
+              <h2 data-i18n="admin.drawTitle" data-i18n-ns="admin">Simulácia uzatvorenia mesiaca</h2>
+              <p class="admin-card__desc" data-i18n="admin.drawDesc" data-i18n-ns="admin">Spustí žrebovanie (3 hlavné + 97 menších), pity timer 1.5^n a vynuluje mesačné body.</p>
             </div>
             <div class="admin-draw-actions">
-              <button type="button" class="btn btn--danger" id="btn-close-month">
+              <button type="button" class="btn btn--danger" id="btn-close-month" data-i18n="admin.drawBtn" data-i18n-ns="admin">
                 Uzatvoriť mesiac a spustiť žrebovanie
               </button>
-              <p class="admin-hint admin-hint--warn">
-                Testovacia akcia – v produkcii len po skutočnom konci mesiaca. Prioritizácia dlhodobo nevýherných je skrytá.
-              </p>
+              <p class="admin-hint admin-hint--warn" data-i18n="admin.drawWarn" data-i18n-ns="admin">Testovacia akcia – v produkcii len po skutočnom konci mesiaca.</p>
             </div>
             <div class="draw-results" id="draw-results" hidden>
-              <h3 class="draw-results__title">Výsledok žrebovania</h3>
+              <h3 class="draw-results__title" data-i18n="admin.drawResult" data-i18n-ns="admin">Výsledok žrebovania</h3>
               <p class="draw-results__meta" id="draw-results-meta"></p>
+              <div class="draw-prize-summary" id="draw-prize-summary"></div>
               <div class="draw-results__grid">
                 <div class="draw-panel">
                   <h4>Hlavné ceny (3)</h4>
@@ -163,7 +163,6 @@
       </div>
     </div>
 
-    <!-- Modal detail používateľa -->
     <dialog class="admin-modal" id="user-modal">
       <div class="admin-modal__inner">
         <header class="admin-modal__head">
@@ -174,8 +173,9 @@
       </div>
     </dialog>
 
+    <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/draw-core.js"></script>
-    <script src="admin.js?v=2"></script>
+    <script src="admin.js?v=3"></script>
   </body>
 </html>

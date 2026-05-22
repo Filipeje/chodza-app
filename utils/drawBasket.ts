@@ -134,7 +134,7 @@ export function calculatePrizeAmounts(options: {
   payingUsers?: number;
   priceMonthly?: number;
 }): PrizeAmounts {
-  const { manualPrizePool, payingUsers = 0, priceMonthly = 3.99 } = options;
+  const { manualPrizePool, payingUsers = 0, priceMonthly = 4.99 } = options;
   const { revenueSplit, manualPoolSplit, smallCount } = DRAW_BASKET_CONFIG;
 
   if (manualPrizePool != null && manualPrizePool > 0) {
@@ -317,8 +317,8 @@ function runBuiltInSimulation(): void {
     }
   }
 
-  const revenueDemo = calculatePrizeAmounts({ payingUsers: 1000, priceMonthly: 3.99 });
-  console.log("\nBez manual pool (1000 × 3,99 €):");
+  const revenueDemo = calculatePrizeAmounts({ payingUsers: 1000, priceMonthly: 4.99 });
+  console.log("\nBez manual pool (1000 × 4,99 €):");
   console.log(`  Prevádzka 45 %: ${revenueDemo.ownerAmount.toFixed(2)} €`);
   console.log(
     `  1./2./3.: ${revenueDemo.firstPrize.toFixed(2)} / ${revenueDemo.secondPrize.toFixed(2)} / ${revenueDemo.thirdPrize.toFixed(2)} €`

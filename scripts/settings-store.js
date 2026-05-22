@@ -62,6 +62,15 @@
     return null;
   }
 
+  function pickNonNegative(...vals) {
+    for (const v of vals) {
+      if (v === undefined || v === null || v === "") continue;
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0) return n;
+    }
+    return null;
+  }
+
   function read(monthKey) {
     const key = monthKey || currentMonthKey();
     let month = null;
@@ -95,7 +104,12 @@
       3;
 
     const prizePoolEur =
-      pickNumber(fromHash?.prizePoolEur, fromBridge?.prizePoolEur, active?.prizePoolEur, month?.prizePoolEur) ?? 1500;
+      pickNonNegative(
+        fromHash?.prizePoolEur,
+        fromBridge?.prizePoolEur,
+        active?.prizePoolEur,
+        month?.prizePoolEur
+      ) ?? 0;
 
     return {
       monthKey: key,
@@ -133,13 +147,33 @@
     return data;
   }
 
-  /** Zapíše nastavenia z hash / window.name do localStorage (index po návrate z adminu). */
+  /** Zapíše nastavenia z hash / window.name do localStorage (stránka aplikácie). */
   function importBridge(monthKey) {
     const key = monthKey || currentMonthKey();
-    const merged = read(key);
+    const fromHash = decodeHash();
+    const fromBridge = pullWindowBridge();
+    const base = read(key);
+    const merged = {
+      ...base,
+      ...(fromBridge || {}),
+      ...(fromHash
+        ? {
+            goalKmPerPoint: fromHash.goalKmPerPoint,
+            maxPointsPerDay: fromHash.maxPointsPerDay,
+            prizePoolEur: fromHash.prizePoolEur,
+          }
+        : {}),
+    };
     write(key, merged);
     clearWindowBridge();
     return merged;
+  }
+
+  function applyHashToPage(monthKey) {
+    const fromHash = decodeHash();
+    if (!fromHash) return null;
+    const key = monthKey || currentMonthKey();
+    return write(key, { ...read(key), ...fromHash, goalType: "walk_km" });
   }
 
   function indexUrlFor(data) {
@@ -155,11 +189,13 @@
     read,
     write,
     importBridge,
+    applyHashToPage,
     indexUrlFor,
     encodeHash,
     decodeHash,
     currentMonthKey,
     GOAL_KEY,
     ACTIVE_KEY,
+    WINDOW_BRIDGE,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);

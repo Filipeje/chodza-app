@@ -4,23 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#558352" />
-    <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" />
+    <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
-    <title>Chôdza</title>
+    <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
     <div class="app">
       <header class="header">
-        <h1 class="header__title" id="page-title">Dnes</h1>
+        <h1 class="header__title" id="page-title" data-i18n="nav.home">Dnes</h1>
         <p class="header__date" id="today-date"></p>
       </header>
 
       <main class="main">
-        <!-- Domov -->
         <section class="panel panel--active" id="panel-home" aria-labelledby="nav-home">
           <div class="ring-card">
-            <div class="ring ring--stadium" role="img" aria-label="Prejdené kilometre dnes">
+            <div class="ring ring--stadium" role="img" data-i18n-aria="ring.aria">
               <svg class="ring__svg" viewBox="0 0 240 118" aria-hidden="true">
                 <path
                   class="ring__track"
@@ -47,50 +46,50 @@
                 <span class="ring__unit">km</span>
               </div>
             </div>
-            <p class="ring-card__status" id="goal-status">Ešte <span id="km-remaining">12.0</span> km do cieľa</p>
-            <button type="button" class="btn btn--ghost" id="sync-btn">Aktualizovať km</button>
+            <p class="ring-card__status" id="goal-status"></p>
+            <button type="button" class="btn btn--ghost" id="sync-btn" data-i18n="ring.sync">Aktualizovať km</button>
           </div>
 
           <div class="draw-countdown" id="draw-countdown" aria-live="polite">
-            <p class="draw-countdown__label">Do ďalšieho odmeňovania</p>
+            <p class="draw-countdown__label" data-i18n="countdown.until">Do ďalšieho odmeňovania</p>
             <p class="draw-countdown__when" id="draw-countdown-when"></p>
             <div class="draw-countdown__grid" id="draw-countdown-grid">
               <div class="draw-countdown__unit">
                 <span class="draw-countdown__value" id="cd-days">—</span>
-                <span class="draw-countdown__name">dní</span>
+                <span class="draw-countdown__name" data-i18n="countdown.days">dní</span>
               </div>
               <div class="draw-countdown__unit">
                 <span class="draw-countdown__value" id="cd-hours">—</span>
-                <span class="draw-countdown__name">hod</span>
+                <span class="draw-countdown__name" data-i18n="countdown.hour">hod</span>
               </div>
               <div class="draw-countdown__unit">
                 <span class="draw-countdown__value" id="cd-mins">—</span>
-                <span class="draw-countdown__name">min</span>
+                <span class="draw-countdown__name" data-i18n="countdown.min">min</span>
               </div>
               <div class="draw-countdown__unit">
                 <span class="draw-countdown__value" id="cd-secs">—</span>
-                <span class="draw-countdown__name">sek</span>
+                <span class="draw-countdown__name" data-i18n="countdown.sec">sek</span>
               </div>
             </div>
           </div>
 
-          <div class="period-toggle" role="group" aria-label="Obdobie štatistiky">
-            <button type="button" class="period-toggle__btn period-toggle__btn--active" data-period="week" id="period-week">
+          <div class="period-toggle" role="group" data-i18n-aria="period.aria">
+            <button type="button" class="period-toggle__btn period-toggle__btn--active" data-period="week" id="period-week" data-i18n="period.week">
               Týždeň
             </button>
-            <button type="button" class="period-toggle__btn" data-period="month" id="period-month">
+            <button type="button" class="period-toggle__btn" data-period="month" id="period-month" data-i18n="period.month">
               Mesiac
             </button>
           </div>
 
           <div class="stats-row">
             <div class="stat">
-              <span class="stat__label" id="stat-km-label">Km tento týždeň</span>
+              <span class="stat__label" id="stat-km-label" data-i18n="stat.kmWeek">Km tento týždeň</span>
               <span class="stat__value" id="km-period">0</span>
               <span class="stat__unit">km</span>
             </div>
             <div class="stat">
-              <span class="stat__label">Splnené dni</span>
+              <span class="stat__label" data-i18n="stat.daysDone">Splnené dni</span>
               <span class="stat__value" id="days-done">0</span>
               <span class="stat__unit" id="days-done-total">/ 7</span>
             </div>
@@ -98,12 +97,12 @@
 
           <section class="calendar-teaser" aria-labelledby="calendar-teaser-title">
             <div class="recent-days__head">
-              <h2 class="recent-days__title" id="calendar-teaser-title">Kalendár chôdze</h2>
+              <h2 class="recent-days__title" id="calendar-teaser-title" data-i18n="calendar.title">Kalendár chôdze</h2>
               <button
                 type="button"
                 class="history-btn"
                 id="calendar-open-btn"
-                aria-label="Otvoriť kalendár chôdze"
+                data-i18n-aria="calendar.openAria"
                 title="Kalendár"
               >
                 <svg class="history-btn__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -112,63 +111,52 @@
                     d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM5 4h1V2h2v2h8V2h2v2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 16h14V9H5v11z"
                   />
                 </svg>
-                <span>Kalendár</span>
+                <span data-i18n="calendar.open">Kalendár</span>
               </button>
             </div>
-            <p class="calendar-teaser__hint" id="calendar-goal-hint">Klikni a pozri si km po dňoch · zelená bodka = splnený denný cieľ</p>
+            <p class="calendar-teaser__hint" id="calendar-goal-hint"></p>
           </section>
         </section>
 
-        <!-- Moje body -->
         <section class="panel" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
           <div class="points-head">
             <p class="points-head__month" id="tickets-month">máj 2026</p>
             <p class="points-head__total">
               <span class="points-head__count" id="tickets-count">0</span>
-              <span id="tickets-count-label">bodov tento mesiac</span>
+              <span id="tickets-count-label" data-i18n="tickets.labelMonthMany">bodov tento mesiac</span>
             </p>
           </div>
 
-          <div class="points-month" id="ticket-list">
-            <!-- mriežka dní – filled by JS -->
-          </div>
+          <div class="points-month" id="ticket-list"></div>
 
-          <p class="hint" id="tickets-points-hint">
-            Za každých <strong id="hint-km-per-point">10</strong> km = 1 bod, maximum
-            <strong id="hint-max-points">3</strong> body za deň. Hore je súčet všetkých bodov v mesiaci.
-          </p>
+          <p class="hint" id="tickets-points-hint"></p>
         </section>
 
-        <!-- Výhercovia / žrebovanie -->
         <section class="panel" id="panel-winners" aria-labelledby="nav-winners" hidden>
           <label class="month-picker">
-            <span class="month-picker__label">Mesiac žrebovania</span>
+            <span class="month-picker__label" data-i18n="winners.monthLabel">Mesiac žrebovania</span>
             <select class="month-picker__select" id="winners-month-select"></select>
           </label>
 
           <div id="winners-content"></div>
 
-          <p class="hint" id="winners-hint">
-            Na konci mesiaca sa žrebuje 3× hlavná cena a 97× menšia cena. Výška výhier závisí od počtu
-            platiacich predplatiteľov.
-          </p>
+          <p class="hint" id="winners-hint" data-i18n="winners.hint"></p>
         </section>
 
-        <!-- Profil -->
         <section class="panel" id="panel-profile" aria-labelledby="nav-profile" hidden>
           <div class="profile-card">
             <div class="avatar" aria-hidden="true">S</div>
             <div>
               <p class="profile-card__name" id="user-name">Synko</p>
               <p class="profile-card__email" id="user-email">synko@example.sk</p>
-              <span class="badge badge--free" id="sub-badge">Bez predplatného</span>
+              <span class="badge badge--free" id="sub-badge" data-i18n="profile.subInactive">Bez predplatného</span>
             </div>
           </div>
 
           <ul class="settings-list">
             <li>
               <div class="setting setting--readonly setting--goal">
-                <span>Denný cieľ</span>
+                <span data-i18n="profile.dailyGoal">Denný cieľ</span>
                 <div class="setting__goal-right">
                   <span class="setting__value" id="display-goal">10 km = 1 bod</span>
                   <span class="setting__goal-max" id="display-goal-max">max 3 body / deň</span>
@@ -176,43 +164,50 @@
               </div>
             </li>
             <li>
+              <label class="setting">
+                <span data-i18n="profile.language">Jazyk</span>
+                <select id="setting-language" class="setting__select">
+                  <option value="sk" data-i18n="profile.langSk">Slovenčina</option>
+                  <option value="en" data-i18n="profile.langEn">English</option>
+                </select>
+              </label>
+            </li>
+            <li>
               <label class="setting setting--toggle">
-                <span>Notifikácie</span>
+                <span data-i18n="profile.notify">Notifikácie</span>
                 <input type="checkbox" id="setting-notify" checked />
               </label>
             </li>
             <li>
               <label class="setting setting--toggle">
-                <span>Tmavý režim</span>
+                <span data-i18n="profile.dark">Tmavý režim</span>
                 <input type="checkbox" id="setting-dark" />
               </label>
             </li>
           </ul>
 
-          <button type="button" class="btn btn--primary btn--block" id="upgrade-btn">
-            Premium – 3,99 € / mesiac
-          </button>
-          <p class="hint hint--center">Denný cieľ nastavuje administrátor. Stripe + Supabase pripojíme v kroku 3.</p>
-          <p class="hint hint--center"><a href="admin.html">Administrácia</a></p>
+          <button type="button" class="btn btn--primary btn--block" id="upgrade-btn"></button>
+          <p class="hint hint--center" data-i18n="profile.hint"></p>
+          <p class="hint hint--center"><a href="admin.html" data-i18n="profile.admin">Administrácia</a></p>
         </section>
       </main>
 
-      <nav class="nav" aria-label="Hlavná navigácia">
+      <nav class="nav" data-i18n-aria="nav.aria">
         <button type="button" class="nav__item nav__item--active" id="nav-home" data-panel="home">
           <span class="nav__icon" aria-hidden="true">◎</span>
-          <span class="nav__label">Dnes</span>
+          <span class="nav__label" data-i18n="nav.home">Dnes</span>
         </button>
         <button type="button" class="nav__item" id="nav-tickets" data-panel="tickets">
           <span class="nav__icon" aria-hidden="true">★</span>
-          <span class="nav__label">Moje body</span>
+          <span class="nav__label" data-i18n="nav.tickets">Moje body</span>
         </button>
         <button type="button" class="nav__item" id="nav-winners" data-panel="winners">
           <span class="nav__icon" aria-hidden="true">🏆</span>
-          <span class="nav__label">Výherci</span>
+          <span class="nav__label" data-i18n="nav.winners">Výhercovia</span>
         </button>
         <button type="button" class="nav__item" id="nav-profile" data-panel="profile">
           <span class="nav__icon" aria-hidden="true">👤</span>
-          <span class="nav__label">Profil</span>
+          <span class="nav__label" data-i18n="nav.profile">Profil</span>
         </button>
       </nav>
     </div>
@@ -226,15 +221,15 @@
         aria-labelledby="calendar-modal-title"
       >
         <header class="history-modal__header">
-          <h2 id="calendar-modal-title">Kalendár chôdze</h2>
-          <button type="button" class="history-modal__close" id="calendar-close-btn" aria-label="Zavrieť">
+          <h2 id="calendar-modal-title" data-i18n="calendar.modalTitle">Kalendár chôdze</h2>
+          <button type="button" class="history-modal__close" id="calendar-close-btn" data-i18n-aria="calendar.close">
             ✕
           </button>
         </header>
 
         <div class="calendar-modal__content">
-          <div class="calendar-view-toggle" role="group" aria-label="Zobrazenie kalendára">
-            <button type="button" class="calendar-view-toggle__btn" data-cal-view="year" id="cal-view-year">
+          <div class="calendar-view-toggle" role="group" data-i18n-aria="calendar.viewAria">
+            <button type="button" class="calendar-view-toggle__btn" data-cal-view="year" id="cal-view-year" data-i18n="calendar.year">
               Ročný
             </button>
             <button
@@ -242,18 +237,19 @@
               class="calendar-view-toggle__btn calendar-view-toggle__btn--active"
               data-cal-view="month"
               id="cal-view-month"
+              data-i18n="calendar.month"
             >
               Mesačný
             </button>
-            <button type="button" class="calendar-view-toggle__btn" data-cal-view="day" id="cal-view-day">
+            <button type="button" class="calendar-view-toggle__btn" data-cal-view="day" id="cal-view-day" data-i18n="calendar.day">
               Denný
             </button>
           </div>
 
           <div class="calendar-nav">
-            <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Predchádzajúce">‹</button>
+            <button type="button" class="calendar-nav__btn" id="cal-prev" data-i18n-aria="calendar.prev">‹</button>
             <span class="calendar-nav__title" id="cal-nav-title"></span>
-            <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Ďalšie">›</button>
+            <button type="button" class="calendar-nav__btn" id="cal-next" data-i18n-aria="calendar.next">›</button>
           </div>
 
           <div class="calendar-body" id="calendar-body"></div>
@@ -263,7 +259,8 @@
       </div>
     </div>
 
+    <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
   </body>
 </html>

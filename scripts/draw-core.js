@@ -58,7 +58,7 @@
   function calculatePrizeAmounts(options) {
     const manualPrizePool = options.manualPrizePool;
     const payingUsers = options.payingUsers ?? 0;
-    const priceMonthly = options.priceMonthly ?? 3.99;
+    const priceMonthly = options.priceMonthly ?? 4.99;
     const { revenueSplit, manualPoolSplit, smallCount } = DRAW_CONFIG;
 
     if (manualPrizePool != null && manualPrizePool > 0) {

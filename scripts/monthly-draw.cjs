@@ -5,7 +5,7 @@
 
 const draw = require("./draw-core.js");
 
-const PRICE_MONTHLY = 3.99;
+const PRICE_MONTHLY = 4.99;
 
 const mockParticipants = [
   { userId: "majo", nick: "Majo", monthly_points: 10, streak_of_loss: 2 },

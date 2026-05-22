@@ -25,9 +25,23 @@ function setRingTier(id, pct, len) {
   el.style.strokeDashoffset = String(len * (1 - clamped));
 }
 
+function t(key, params) {
+  return typeof ChodzaI18n !== "undefined" ? ChodzaI18n.t(key, params) : key;
+}
+
+function loc() {
+  return typeof ChodzaI18n !== "undefined" ? ChodzaI18n.getLocale() : "sk-SK";
+}
+
+function subscriptionPriceFmt() {
+  return typeof ChodzaI18n !== "undefined" ? ChodzaI18n.formatPrice() : "4,99 €";
+}
+
+let activePanel = "home";
+
 /** Výpočet výhier (podiel na odmeny nie je v UI zobrazený) */
 const PRIZE_CONFIG = {
-  priceMonthly: 3.99,
+  priceMonthly: typeof ChodzaI18n !== "undefined" ? ChodzaI18n.SUBSCRIPTION_PRICE : 4.99,
   ownerShare: 0.45,
   mainCount: 3,
   smallCount: 97,
@@ -53,17 +67,10 @@ const state = {
   selectedWinnerMonth: null,
 };
 
-const titles = {
-  home: "Dnes",
-  tickets: "Moje body",
-  winners: "Výhercovia",
-  profile: "Profil",
-};
-
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 function formatDateSk(d) {
-  return d.toLocaleDateString("sk-SK", {
+  return d.toLocaleDateString(loc(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -72,7 +79,7 @@ function formatDateSk(d) {
 
 function formatShortSk(iso) {
   const d = new Date(iso + "T12:00:00");
-  return d.toLocaleDateString("sk-SK", { day: "numeric", month: "short" });
+  return d.toLocaleDateString(loc(), { day: "numeric", month: "short" });
 }
 
 function todayIso() {
@@ -86,17 +93,18 @@ function getDrawDeadline() {
 }
 
 function formatDrawDate(d) {
-  return d.toLocaleDateString("sk-SK", {
+  return d.toLocaleDateString(loc(), {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
 }
 
-function pluralUnit(n, one, few, many) {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
+function pluralUnit(n) {
+  if (n === 1) return t("countdown.day");
+  if (ChodzaI18n?.getLang() === "en") return t("countdown.days");
+  if (n >= 2 && n <= 4) return t("countdown.days2");
+  return t("countdown.days");
 }
 
 function updateDrawCountdown() {
@@ -110,11 +118,11 @@ function updateDrawCountdown() {
 
   if (!box || !whenEl) return;
 
-  whenEl.textContent = `Odmeňovanie: ${formatDrawDate(deadline)}`;
+  whenEl.textContent = t("countdown.on", { date: formatDrawDate(deadline) });
 
   if (diff <= 0) {
     box.classList.add("draw-countdown--today");
-    if (labelEl) labelEl.textContent = "Odmeňovanie dnes!";
+    if (labelEl) labelEl.textContent = t("countdown.today");
     document.getElementById("cd-days").textContent = "0";
     document.getElementById("cd-hours").textContent = "0";
     document.getElementById("cd-mins").textContent = "0";
@@ -123,7 +131,7 @@ function updateDrawCountdown() {
   }
 
   box.classList.remove("draw-countdown--today");
-  if (labelEl) labelEl.textContent = "Do ďalšieho odmeňovania";
+  if (labelEl) labelEl.textContent = t("countdown.until");
 
   const days = Math.floor(diff / 86400000);
   diff -= days * 86400000;
@@ -139,9 +147,13 @@ function updateDrawCountdown() {
   document.getElementById("cd-secs").textContent = String(secs).padStart(2, "0");
 
   const daysName = document.querySelector("#draw-countdown .draw-countdown__unit:first-child .draw-countdown__name");
-  if (daysName) {
-    daysName.textContent = pluralUnit(days, "deň", "dni", "dní");
-  }
+  if (daysName) daysName.textContent = pluralUnit(days);
+
+  document.querySelectorAll("#draw-countdown .draw-countdown__name").forEach((el, i) => {
+    if (i === 0) return;
+    const keys = ["countdown.hour", "countdown.min", "countdown.sec"];
+    if (keys[i - 1]) el.textContent = t(keys[i - 1]);
+  });
 }
 
 let drawCountdownTimer = null;
@@ -185,10 +197,10 @@ function qualifiesGreenDot(km) {
 function dayLabel(iso) {
   const today = todayIso();
   const yesterday = addDays(today, -1);
-  if (iso === today) return "Dnes";
-  if (iso === yesterday) return "Včera";
+  if (iso === today) return t("day.today");
+  if (iso === yesterday) return t("day.yesterday");
   const d = new Date(iso + "T12:00:00");
-  return d.toLocaleDateString("sk-SK", { weekday: "long" });
+  return d.toLocaleDateString(loc(), { weekday: "long" });
 }
 
 function getPointsForKm(km) {
@@ -198,10 +210,11 @@ function getPointsForKm(km) {
 }
 
 function formatPointsShort(n) {
-  if (n === 1) return "1 bod";
-  if (n >= 2 && n <= 4) return `${n} body`;
-  if (n === 0) return "0 bodov";
-  return `${n} bodov`;
+  if (n === 0) return t("points.zero");
+  if (n === 1) return t("points.one");
+  if (ChodzaI18n?.getLang() === "en") return t("points.many", { n });
+  if (n >= 2 && n <= 4) return t("points.few", { n });
+  return t("points.many", { n });
 }
 
 function updateCalendarDayDetail(iso) {
@@ -210,7 +223,7 @@ function updateCalendarDayDetail(iso) {
 
   const km = getKmForDate(iso);
   const d = new Date(iso + "T12:00:00");
-  const title = d.toLocaleDateString("sk-SK", {
+  const title = d.toLocaleDateString(loc(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -220,14 +233,14 @@ function updateCalendarDayDetail(iso) {
   if (km == null) {
     box.innerHTML = `
       <p class="calendar-day-detail__title">${title}</p>
-      <p class="calendar-day-detail__meta">Žiadne údaje o chôdzi.</p>`;
+      <p class="calendar-day-detail__meta">${t("calendar.noData")}</p>`;
     return;
   }
 
   const pts = getPointsForKm(km);
   const dotNote = qualifiesGreenDot(km)
-    ? " · splnený cieľ (zelená bodka)"
-    : ` · ešte ${Math.max(0, state.goalKm - km).toFixed(1)} km do zelenej bodky`;
+    ? t("calendar.goalMet")
+    : t("calendar.kmToGreen", { km: Math.max(0, state.goalKm - km).toFixed(1) });
 
   box.innerHTML = `
     <p class="calendar-day-detail__title">${title}</p>
@@ -273,7 +286,8 @@ function renderMonthCalendar() {
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const startPad = (first.getDay() + 6) % 7;
   const today = todayIso();
-  const weekdays = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+  const weekdays =
+    typeof ChodzaI18n !== "undefined" ? ChodzaI18n.getWeekdays() : ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 
   let cells = "";
   for (let i = 0; i < startPad; i++) {
@@ -288,7 +302,7 @@ function renderMonthCalendar() {
     cells += `<button type="button" class="calendar-day${selected ? " calendar-day--selected" : ""}${isToday ? " calendar-day--today" : ""}" data-date="${iso}">${d}${dot}</button>`;
   }
 
-  document.getElementById("cal-nav-title").textContent = first.toLocaleDateString("sk-SK", {
+  document.getElementById("cal-nav-title").textContent = first.toLocaleDateString(loc(), {
     month: "long",
     year: "numeric",
   });
@@ -305,11 +319,11 @@ function renderYearCalendar() {
     const entries = state.history.filter((h) => h.date.startsWith(prefix));
     const totalKm = entries.reduce((s, h) => s + h.km, 0);
     const greenDays = entries.filter((h) => qualifiesGreenDot(h.km)).length;
-    const name = new Date(y, mi, 1).toLocaleDateString("sk-SK", { month: "short" });
+    const name = new Date(y, mi, 1).toLocaleDateString(loc(), { month: "short" });
     const active = mi === state.calendarMonth ? " calendar-year-month--active" : "";
     return `<button type="button" class="calendar-year-month${active}" data-month="${mi}">
       <span class="calendar-year-month__name">${name}</span>
-      <span class="calendar-year-month__meta">${totalKm.toFixed(0)} km · ${greenDays} dní ●</span>
+      <span class="calendar-year-month__meta">${t("calendar.yearMeta", { km: totalKm.toFixed(0), days: greenDays })}</span>
     </button>`;
   });
 
@@ -322,7 +336,7 @@ function renderDayCalendar() {
   const km = getKmForDate(iso);
   const d = new Date(iso + "T12:00:00");
 
-  document.getElementById("cal-nav-title").textContent = d.toLocaleDateString("sk-SK", {
+  document.getElementById("cal-nav-title").textContent = d.toLocaleDateString(loc(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -330,13 +344,13 @@ function renderDayCalendar() {
   });
 
   if (km == null) {
-    return `<div class="calendar-day-view"><p class="calendar-day-view__sub">Žiadne údaje o chôdzi.</p></div>`;
+    return `<div class="calendar-day-view"><p class="calendar-day-view__sub">${t("calendar.noData")}</p></div>`;
   }
 
   return `
     <div class="calendar-day-view">
       <div class="calendar-day-view__km">${km.toFixed(1)} km</div>
-      <p class="calendar-day-view__sub">${formatPointsShort(getPointsForKm(km))}${qualifiesGreenDot(km) ? " · zelená bodka" : ""}</p>
+      <p class="calendar-day-view__sub">${formatPointsShort(getPointsForKm(km))}${qualifiesGreenDot(km) ? t("calendar.greenDot") : ""}</p>
     </div>`;
 }
 
@@ -412,24 +426,32 @@ function updateRing() {
 
   const maxPts = getMaxPointsPerDay();
   if (pointsToday >= maxPts) {
-    status.textContent = `Maximum ${maxPts} body za dnes!`;
+    status.textContent = t("ring.maxToday", { max: maxPts });
     status.style.color = "var(--success)";
   } else if (pointsToday > 0) {
     const nextAt = (pointsToday + 1) * step;
     const left = Math.max(0, nextAt - km).toFixed(1);
-    status.innerHTML = `Dnes <strong>${formatPointsShort(pointsToday)}</strong> · ešte <span id="km-remaining">${left}</span> km do ďalšieho`;
+    const mid =
+      ChodzaI18n?.getLang() === "en"
+        ? ` · <span id="km-remaining">${left}</span> km to next`
+        : ` · ešte <span id="km-remaining">${left}</span> km do ďalšieho`;
+    status.innerHTML = `${t("day.today")} <strong>${formatPointsShort(pointsToday)}</strong>${mid}`;
     status.style.color = "var(--success)";
   } else {
     const left = Math.max(0, step - km).toFixed(1);
-    status.innerHTML = `Ešte <span id="km-remaining">${left}</span> km do 1. bodu (${step} km = 1 bod)`;
+    status.innerHTML =
+      ChodzaI18n?.getLang() === "en"
+        ? `<span id="km-remaining">${left}</span> km to 1st point (${step} km = 1 point)`
+        : `Ešte <span id="km-remaining">${left}</span> km do 1. bodu (${step} km = 1 bod)`;
     status.style.color = "";
   }
 }
 
 function pluralBody(n) {
-  if (n === 1) return "bod tento mesiac";
-  if (n >= 2 && n <= 4) return "body tento mesiac";
-  return "bodov tento mesiac";
+  if (n === 1) return t("tickets.labelMonth");
+  if (ChodzaI18n?.getLang() === "en") return t("tickets.labelMonthMany");
+  if (n >= 2 && n <= 4) return t("tickets.labelMonths");
+  return t("tickets.labelMonthMany");
 }
 
 function getMonthDailyPoints() {
@@ -468,7 +490,7 @@ function rebuildDailyPointsFromHistory() {
 
 function dayAbbrSk(iso) {
   const d = new Date(iso + "T12:00:00");
-  const abbr = d.toLocaleDateString("sk-SK", { weekday: "short" }).replace(".", "");
+  const abbr = d.toLocaleDateString(loc(), { weekday: "short" }).replace(".", "");
   return abbr.slice(0, 2).toUpperCase();
 }
 
@@ -481,10 +503,10 @@ function renderTickets() {
 
   const totalPoints = getMonthDailyPoints().reduce((s, d) => s + d.points, 0);
 
-  document.getElementById("tickets-month").textContent = now.toLocaleDateString(
-    "sk-SK",
-    { month: "long", year: "numeric" }
-  );
+  document.getElementById("tickets-month").textContent = now.toLocaleDateString(loc(), {
+    month: "long",
+    year: "numeric",
+  });
   document.getElementById("tickets-count").textContent = String(totalPoints);
   document.getElementById("tickets-count-label").textContent = pluralBody(totalPoints);
 
@@ -541,21 +563,25 @@ function updateAdminGoalUi() {
   const maxPts = getMaxPointsPerDay();
 
   const el = document.getElementById("display-goal");
-  if (el) el.textContent = `${km} km = 1 bod`;
+  if (el) el.textContent = t("profile.goalFmt", { km });
 
   const maxEl = document.getElementById("display-goal-max");
-  if (maxEl) maxEl.textContent = `max ${maxPts} ${maxPts === 1 ? "bod" : maxPts < 5 ? "body" : "bodov"} / deň`;
+  if (maxEl) {
+    const key =
+      maxPts === 1 ? "profile.goalMaxOne" : maxPts >= 2 && maxPts <= 4 ? "profile.goalMaxFew" : "profile.goalMaxMany";
+    maxEl.textContent = t(key, { max: maxPts });
+  }
 
-  const hint = document.getElementById("hint-km-per-point");
-  if (hint) hint.textContent = String(km);
-
-  const hintMax = document.getElementById("hint-max-points");
-  if (hintMax) hintMax.textContent = String(maxPts);
+  const ticketsHint = document.getElementById("tickets-points-hint");
+  if (ticketsHint) {
+    ticketsHint.innerHTML =
+      ChodzaI18n?.getLang() === "en"
+        ? `Every <strong>${km}</strong> km = 1 point, max <strong>${maxPts}</strong> points per day. Total above is your monthly sum.`
+        : `Za každých <strong>${km}</strong> km = 1 bod, maximum <strong>${maxPts}</strong> body za deň. Hore je súčet všetkých bodov v mesiaci.`;
+  }
 
   const calHint = document.getElementById("calendar-goal-hint");
-  if (calHint) {
-    calHint.textContent = `Klikni a pozri si km po dňoch · zelená bodka = aspoň ${km} km`;
-  }
+  if (calHint) calHint.textContent = t("calendar.hint", { km });
 }
 
 function refreshAfterAdminSettings() {
@@ -601,10 +627,10 @@ function updatePeriodStats() {
   const daysTotal = document.getElementById("days-done-total");
 
   if (period === "week") {
-    kmLabel.textContent = "Km tento týždeň";
+    kmLabel.textContent = t("stat.kmWeek");
     daysTotal.textContent = "/ 7";
   } else {
-    kmLabel.textContent = "Km tento mesiac";
+    kmLabel.textContent = t("stat.kmMonth");
     const now = new Date();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     daysTotal.textContent = `/ ${daysInMonth}`;
@@ -631,11 +657,11 @@ function setStatsPeriod(period) {
 function formatMonthKey(key) {
   const [y, m] = key.split("-");
   const d = new Date(Number(y), Number(m) - 1, 1);
-  return d.toLocaleDateString("sk-SK", { month: "long", year: "numeric" });
+  return d.toLocaleDateString(loc(), { month: "long", year: "numeric" });
 }
 
 function formatEur(amount) {
-  return amount.toLocaleString("sk-SK", {
+  return amount.toLocaleString(loc(), {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
@@ -685,7 +711,7 @@ function renderMainWinnerRow(w, prizeEur) {
       <span class="winner-row__medal" aria-hidden="true">${medal}</span>
       <div class="winner-row__info">
         <span class="winner-row__nick">@${w.nick}</span>
-        <span class="winner-row__sub">${w.place}. miesto – hlavná cena</span>
+        <span class="winner-row__sub">${t("winners.placeMain", { place: w.place })}</span>
       </div>
       <span class="winner-row__prize">${formatEur(prizeEur)}</span>
     </li>`;
@@ -697,7 +723,7 @@ function renderSmallWinnerRow(w, prizeEur) {
       <span class="winner-row__place">•</span>
       <div class="winner-row__info">
         <span class="winner-row__nick">@${w.nick}</span>
-        <span class="winner-row__sub">menšia výhra</span>
+        <span class="winner-row__sub">${t("winners.placeSmall")}</span>
       </div>
       <span class="winner-row__prize">${formatEur(prizeEur)}</span>
     </li>`;
@@ -719,7 +745,7 @@ function seedDemoWinners() {
 
   state.winnersByMonth[prev] = {
     payingUsers: 1000,
-    priceMonthly: 3.99,
+    priceMonthly: PRIZE_CONFIG.priceMonthly,
     main: [
       { place: 1, nick: "ChodecPro_SK" },
       { place: 2, nick: "Krokomerista" },
@@ -737,7 +763,7 @@ function seedDemoWinners() {
 
   state.winnersByMonth[twoBack] = {
     payingUsers: 650,
-    priceMonthly: 3.99,
+    priceMonthly: PRIZE_CONFIG.priceMonthly,
     main: [
       { place: 1, nick: "FitJuraj" },
       { place: 2, nick: "12km_den" },
@@ -787,9 +813,7 @@ function renderWinners() {
   if (!draw || !draw.main?.length) {
     container.innerHTML = `
       <div class="winners-status winners-status--pending">
-        ${isCurrent
-          ? "Žrebovanie pre tento mesiac ešte neprebehlo. Po skončení mesiaca sa vyžrebujú 3 hlavné a 97 menších cien."
-          : "Pre tento mesiac zatiaľ nie sú zverejnení výhercovia."}
+        ${isCurrent ? t("winners.pendingCurrent") : t("winners.pendingPast")}
       </div>`;
     hint.hidden = false;
     return;
@@ -801,16 +825,22 @@ function renderWinners() {
       : calculatePrizeBreakdown(draw.payingUsers, draw.priceMonthly ?? PRIZE_CONFIG.priceMonthly);
   const mainPrizes = [b.firstPrize, b.secondPrize, b.thirdPrize];
   const collapsedClass = smallWinnersExpanded ? "" : " winners-list--collapsed";
-  const toggleLabel = smallWinnersExpanded ? "Zbaliť zoznam" : `Zobraziť všetkých (${draw.small.length})`;
+  const toggleLabel = smallWinnersExpanded
+    ? t("winners.collapse")
+    : t("winners.expand", { n: draw.small.length });
 
   container.innerHTML = `
     <div class="winners-status">
-      ${formatMonthKey(month)} – ${b.totalWinners} výhercov (3 hlavné + ${PRIZE_CONFIG.smallCount} menších)
+      ${t("winners.summary", {
+        month: formatMonthKey(month),
+        total: b.totalWinners,
+        small: PRIZE_CONFIG.smallCount,
+      })}
     </div>
     <section class="winners-section">
       <div class="winners-section__head">
-        <h3 class="winners-section__title">Hlavné ceny</h3>
-        <span class="winners-section__meta">3 výhercov</span>
+        <h3 class="winners-section__title">${t("winners.mainTitle")}</h3>
+        <span class="winners-section__meta">${t("winners.mainMeta")}</span>
       </div>
       <ol class="winners-list">
         ${draw.main.map((w, i) => renderMainWinnerRow(w, mainPrizes[i])).join("")}
@@ -818,7 +848,7 @@ function renderWinners() {
     </section>
     <section class="winners-section">
       <div class="winners-section__head">
-        <h3 class="winners-section__title">Menšie ceny</h3>
+        <h3 class="winners-section__title">${t("winners.smallTitle")}</h3>
         <button type="button" class="btn--tiny" id="toggle-small-winners">${toggleLabel}</button>
       </div>
       <ol class="winners-list${collapsedClass}" id="winners-small-list">
@@ -834,7 +864,49 @@ function renderWinners() {
   hint.hidden = true;
 }
 
+function updateSubBadge() {
+  const badge = document.getElementById("sub-badge");
+  if (!badge) return;
+  badge.textContent = state.premium ? t("profile.subActive") : t("profile.subInactive");
+  badge.classList.toggle("badge--free", !state.premium);
+  badge.classList.toggle("badge--premium", !!state.premium);
+}
+
+function applyAppLanguage() {
+  if (typeof ChodzaI18n !== "undefined") ChodzaI18n.applyStatic(document);
+  const ring = document.querySelector(".ring--stadium");
+  if (ring) ring.setAttribute("aria-label", t("ring.aria"));
+  const upgrade = document.getElementById("upgrade-btn");
+  if (upgrade) upgrade.textContent = t("profile.premium", { price: subscriptionPriceFmt() });
+  updateSubBadge();
+  document.getElementById("page-title").textContent = t(`nav.${activePanel}`);
+  const winnersHint = document.getElementById("winners-hint");
+  if (winnersHint) winnersHint.textContent = t("winners.hint");
+  updateRing();
+  updateDrawCountdown();
+  updatePeriodStats();
+  updateAdminGoalUi();
+  renderTickets();
+  if (activePanel === "winners") renderWinners();
+  if (isCalendarOpen()) renderCalendar();
+  updateAdminLinkHref();
+}
+
+function setLanguage(lang) {
+  if (typeof ChodzaI18n !== "undefined") ChodzaI18n.setLang(lang);
+  const sel = document.getElementById("setting-language");
+  if (sel) sel.value = lang;
+  try {
+    const raw = localStorage.getItem("chodza-settings");
+    const s = raw ? JSON.parse(raw) : {};
+    s.lang = lang;
+    localStorage.setItem("chodza-settings", JSON.stringify(s));
+  } catch (_) {}
+  applyAppLanguage();
+}
+
 function showPanel(name) {
+  activePanel = name;
   document.querySelectorAll(".panel").forEach((p) => {
     p.hidden = true;
     p.classList.remove("panel--active");
@@ -847,7 +919,7 @@ function showPanel(name) {
     n.classList.toggle("nav__item--active", n.dataset.panel === name);
   });
 
-  document.getElementById("page-title").textContent = titles[name] || name;
+  document.getElementById("page-title").textContent = t(`nav.${name}`);
 
   if (name === "home" || name === "tickets" || name === "profile") {
     refreshAfterAdminSettings();
@@ -864,7 +936,7 @@ function showPanel(name) {
     updatePeriodStats();
   } else if (name === "tickets") {
     const now = new Date();
-    document.getElementById("today-date").textContent = now.toLocaleDateString("sk-SK", {
+    document.getElementById("today-date").textContent = now.toLocaleDateString(loc(), {
       month: "long",
       year: "numeric",
     });
@@ -886,9 +958,9 @@ function simulateSync() {
   renderTickets();
 
   const btn = document.getElementById("sync-btn");
-  btn.textContent = "Aktualizované ✓";
+  btn.textContent = t("sync.done");
   setTimeout(() => {
-    btn.textContent = "Aktualizovať km";
+    btn.textContent = t("ring.sync");
   }, 2000);
 }
 
@@ -906,25 +978,40 @@ function seedDemoHistory() {
 function applySettingsFromUrl() {
   if (typeof ChodzaSettings === "undefined") return;
 
-  ChodzaSettings.importBridge(currentMonthKey());
-
+  const key = currentMonthKey();
   const p = new URLSearchParams(location.search);
+  let payload = null;
+
+  if (location.hash && ChodzaSettings.decodeHash()) {
+    payload = ChodzaSettings.applyHashToPage(key);
+  } else {
+    ChodzaSettings.importBridge(key);
+    payload = ChodzaSettings.read(key);
+  }
+
   if (p.has("goalKm") || p.has("maxPoints")) {
-    const cur = ChodzaSettings.read(currentMonthKey());
-    const payload = { ...cur };
+    const cur = payload || ChodzaSettings.read(key);
+    const merged = { ...cur };
     if (p.has("goalKm")) {
       const g = Number(p.get("goalKm"));
-      if (g >= 1 && g <= 50) payload.goalKmPerPoint = g;
+      if (g >= 1 && g <= 50) merged.goalKmPerPoint = g;
     }
     if (p.has("maxPoints")) {
       const m = Number(p.get("maxPoints"));
-      if (m >= 1 && m <= 10) payload.maxPointsPerDay = m;
+      if (m >= 1 && m <= 10) merged.maxPointsPerDay = m;
     }
-    ChodzaSettings.write(currentMonthKey(), payload);
+    payload = ChodzaSettings.write(key, merged);
   }
 
-  const hash = ChodzaSettings.encodeHash(ChodzaSettings.read(currentMonthKey()));
-  history.replaceState({}, "", `index.html${hash}`);
+  const final = payload || ChodzaSettings.read(key);
+  history.replaceState({}, "", `index.html${ChodzaSettings.encodeHash(final)}`);
+}
+
+function updateAdminLinkHref() {
+  const adminLink = document.querySelector('a[href*="admin.html"]');
+  if (!adminLink || typeof ChodzaSettings === "undefined") return;
+  const s = ChodzaSettings.read(currentMonthKey());
+  adminLink.href = `admin.html${ChodzaSettings.encodeHash(s)}`;
 }
 
 function init() {
@@ -947,8 +1034,20 @@ function init() {
       if (s.statsPeriod === "week" || s.statsPeriod === "month") {
         state.statsPeriod = s.statsPeriod;
       }
+      if (s.lang === "en" || s.lang === "sk") {
+        if (typeof ChodzaI18n !== "undefined") ChodzaI18n.setLang(s.lang);
+      }
     } catch (_) {}
   }
+
+  const langSel = document.getElementById("setting-language");
+  if (langSel) {
+    langSel.value = typeof ChodzaI18n !== "undefined" ? ChodzaI18n.getLang() : "sk";
+    langSel.addEventListener("change", () => setLanguage(langSel.value));
+  }
+
+  applyAppLanguage();
+  updateAdminLinkHref();
 
   syncTodayToHistory();
   updateRing();
@@ -966,7 +1065,10 @@ function init() {
       refreshAfterAdminSettings();
     }
   });
-  window.addEventListener("chodza-settings-changed", () => refreshAfterAdminSettings());
+  window.addEventListener("chodza-settings-changed", () => {
+    refreshAfterAdminSettings();
+    updateAdminLinkHref();
+  });
   window.addEventListener("hashchange", () => {
     if (typeof ChodzaSettings !== "undefined") ChodzaSettings.importBridge(currentMonthKey());
     refreshAfterAdminSettings();

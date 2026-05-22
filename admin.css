@@ -108,6 +108,22 @@ body {
   font-size: 0.88rem;
 }
 
+.admin-lang {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.admin-lang select {
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.15);
+  color: inherit;
+  font: inherit;
+}
+
 .admin-main {
   display: flex;
   flex-direction: column;
@@ -418,6 +434,161 @@ select:focus {
   margin: 0 0 1rem;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.draw-prize-summary {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.15rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.draw-prize-summary__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.draw-prize-summary__table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.draw-prize-summary__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.9rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.draw-prize-summary__row:last-child {
+  border-bottom: none;
+}
+
+.draw-prize-summary__row--highlight strong {
+  color: var(--accent-dark);
+  font-size: 1.05rem;
+}
+
+.draw-prize-summary__row--sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding-top: 0;
+  border-bottom: none;
+}
+
+.draw-prize-summary__row--total {
+  margin-top: 0.35rem;
+  padding-top: 0.65rem;
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.draw-prize-summary__row--muted {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border-bottom: none;
+}
+
+.draw-prize-summary__hint {
+  margin: 0.75rem 0 0;
+}
+
+.draw-prize-summary__revenue {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.draw-prize-summary__revenue p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.draw-prize-summary__row--owner {
+  background: rgba(85, 131, 82, 0.12);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem !important;
+  border-bottom: none !important;
+  margin-bottom: 0.5rem;
+}
+
+.draw-prize-summary__pct {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.draw-prize-summary__manual-note {
+  margin: 0 0 0.75rem;
+}
+
+.revenue-preview__lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.revenue-preview__total {
+  color: var(--accent-dark);
+  font-size: 1.1rem;
+}
+
+.revenue-preview__table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.revenue-preview__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.88rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.revenue-preview__row--owner {
+  background: rgba(85, 131, 82, 0.14);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem !important;
+  border-bottom: none !important;
+  font-weight: 600;
+}
+
+.revenue-preview__row--owner strong {
+  color: var(--accent-dark);
+  font-size: 1.05rem;
+}
+
+.revenue-preview__row--sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-bottom: none;
+}
+
+.revenue-preview__row--sum {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--accent);
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.admin-fieldset--revenue {
+  grid-column: 1 / -1;
+}
+
+.revenue-preview--manual-active .revenue-preview__lead {
+  opacity: 0.85;
 }
 
 .draw-results__grid {

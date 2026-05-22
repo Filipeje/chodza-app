@@ -5,7 +5,7 @@ Postup podľa vášho plánu:
 | Krok | Stav | Čo je v projekte |
 |------|------|------------------|
 | 1. Dizajn na webe | ✅ | `index.html`, `styles.css`, `app.js` – mobilné UI |
-| 2. Zdravie / GPS | ⏳ | Tlačidlo „Synchronizovať“ je demo; HealthKit / Health Connect pripojíme ako native alebo Capacitor |
+| 2. Zdravie / GPS | ⏳ | Tlačidlo „Aktualizovať km“ je demo; HealthKit / Health Connect pripojíme ako native alebo Capacitor |
 | 3. Supabase | 📄 | `supabase/schema.sql` |
 | 4. Stripe | ⏳ | Placeholder v Profile |
 | 5. Žrebovanie | 📄 | `scripts/monthly-draw.js` |

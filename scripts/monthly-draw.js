@@ -1,13 +1,13 @@
 /**
  * Žrebovanie na konci mesiaca: 3 hlavné + 70 menších cien.
- * Výhry = 70 % z (počet platiacich × cena predplatného), zvyšných 30 % pre prevádzku.
+ * Výšky cien sa počítajú z počtu platiacich × cena predplatného (podiely nie sú v appke zobrazené).
  *
  * Spustenie: node scripts/monthly-draw.js --month=2026-05 --paying=1000
  */
 
 const PRICE_MONTHLY = 3.99;
-const OWNER_SHARE = 0.3;
-const PRIZE_POOL_SHARE = 0.7;
+const OWNER_SHARE = 0.45;
+const PRIZE_POOL_SHARE = 0.55;
 const MAIN_COUNT = 3;
 const SMALL_COUNT = 70;
 const POOL_SPLIT = { first: 0.25, second: 0.15, third: 0.1, small: 0.5 };
@@ -77,10 +77,8 @@ function main() {
   console.log(`Platiaci predplatitelia: ${payingUsers}`);
 
   const prizes = calculatePrizeBreakdown(payingUsers);
-  console.log("\n--- Rozdelenie peňazí ---");
-  console.log(`Tržby: ${prizes.revenue.toFixed(2)} €`);
-  console.log(`Pre vás (30 %): ${prizes.ownerAmount.toFixed(2)} €`);
-  console.log(`Výhry za mesiac (70 %): ${prizes.poolAmount.toFixed(2)} €`);
+  console.log("\n--- Výšky cien (interný výpočet) ---");
+  console.log(`Fond na výhry: ${prizes.poolAmount.toFixed(2)} €`);
   console.log(`1. cena: ${prizes.firstPrize.toFixed(2)} €`);
   console.log(`2. cena: ${prizes.secondPrize.toFixed(2)} €`);
   console.log(`3. cena: ${prizes.thirdPrize.toFixed(2)} €`);

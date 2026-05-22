@@ -7,17 +7,25 @@ const MAX_POINTS_PER_DAY = 3;
 let trackPathLength = 0;
 
 function getTrackPathLength() {
-  const el = document.getElementById("ring-progress");
+  const el = document.getElementById("ring-progress-1");
   if (!el) return 500;
   if (!trackPathLength) trackPathLength = el.getTotalLength();
   return trackPathLength;
 }
 
-/** Rozdelenie výhier za mesiac (70 % tržieb) – súčet = 100 % */
+function setRingTier(id, pct, len) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const clamped = Math.min(1, Math.max(0, pct));
+  el.style.strokeDasharray = `${len}`;
+  el.style.strokeDashoffset = String(len * (1 - clamped));
+}
+
+/** Výpočet výhier (podiel na odmeny nie je v UI zobrazený) */
 const PRIZE_CONFIG = {
   priceMonthly: 3.99,
-  ownerShare: 0.3,
-  prizePoolShare: 0.7,
+  ownerShare: 0.45,
+  prizePoolShare: 0.55,
   mainCount: 3,
   smallCount: 70,
   poolSplit: { first: 0.25, second: 0.15, third: 0.1, small: 0.5 },
@@ -29,6 +37,10 @@ const state = {
   statsPeriod: "week",
   history: [],
   dailyPoints: [],
+  calendarView: "month",
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth(),
+  selectedCalendarDay: null,
   premium: false,
   winnersByMonth: {},
   selectedWinnerMonth: null,
@@ -91,11 +103,11 @@ function updateDrawCountdown() {
 
   if (!box || !whenEl) return;
 
-  whenEl.textContent = `Žrebovanie: ${formatDrawDate(deadline)}`;
+  whenEl.textContent = `Odmeňovanie: ${formatDrawDate(deadline)}`;
 
   if (diff <= 0) {
     box.classList.add("draw-countdown--today");
-    if (labelEl) labelEl.textContent = "Žrebovanie dnes!";
+    if (labelEl) labelEl.textContent = "Odmeňovanie dnes!";
     document.getElementById("cd-days").textContent = "0";
     document.getElementById("cd-hours").textContent = "0";
     document.getElementById("cd-mins").textContent = "0";
@@ -104,7 +116,7 @@ function updateDrawCountdown() {
   }
 
   box.classList.remove("draw-countdown--today");
-  if (labelEl) labelEl.textContent = "Do ďalšieho žrebovania";
+  if (labelEl) labelEl.textContent = "Do ďalšieho odmeňovania";
 
   const days = Math.floor(diff / 86400000);
   diff -= days * 86400000;
@@ -150,11 +162,17 @@ function getHistorySorted() {
   return [...state.history].sort((a, b) => b.date.localeCompare(a.date));
 }
 
-function getRecentDaysBeforeToday(count = 3) {
-  const today = todayIso();
-  return getHistorySorted()
-    .filter((h) => h.date < today)
-    .slice(0, count);
+function isoFromParts(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function getKmForDate(iso) {
+  const entry = state.history.find((h) => h.date === iso);
+  return entry ? entry.km : null;
+}
+
+function qualifiesGreenDot(km) {
+  return km != null && km >= state.goalKm;
 }
 
 function dayLabel(iso) {
@@ -179,67 +197,209 @@ function formatPointsShort(n) {
   return `${n} bodov`;
 }
 
-function renderDayRow(entry) {
-  const pts = getPointsForKm(entry.km);
-  const badge =
-    pts > 0 ? `<span class="day-row__badge">${formatPointsShort(pts)}</span>` : "";
-  return `
-    <li class="day-row">
-      <div class="day-row__left">
-        <span class="day-row__label">${dayLabel(entry.date)}${badge}</span>
-        <span class="day-row__sub">${formatShortSk(entry.date)}</span>
-      </div>
-      <span class="day-row__km${pts > 0 ? " day-row__km--done" : ""}">${entry.km.toFixed(1)} km</span>
-    </li>`;
-}
+function updateCalendarDayDetail(iso) {
+  const box = document.getElementById("calendar-day-detail");
+  if (!box || !iso) return;
 
-function renderRecentDays() {
-  const list = document.getElementById("recent-days-list");
-  const days = getRecentDaysBeforeToday(3);
-  if (days.length === 0) {
-    list.innerHTML =
-      '<li class="day-row"><span class="day-row__sub">Zatiaľ žiadna história.</span></li>';
+  const km = getKmForDate(iso);
+  const d = new Date(iso + "T12:00:00");
+  const title = d.toLocaleDateString("sk-SK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (km == null) {
+    box.innerHTML = `
+      <p class="calendar-day-detail__title">${title}</p>
+      <p class="calendar-day-detail__meta">Žiadne údaje o chôdzi.</p>`;
     return;
   }
-  list.innerHTML = days.map(renderDayRow).join("");
+
+  const pts = getPointsForKm(km);
+  const dotNote = qualifiesGreenDot(km)
+    ? " · splnený cieľ (zelená bodka)"
+    : ` · ešte ${Math.max(0, state.goalKm - km).toFixed(1)} km do zelenej bodky`;
+
+  box.innerHTML = `
+    <p class="calendar-day-detail__title">${title}</p>
+    <p class="calendar-day-detail__km">${km.toFixed(1)} km</p>
+    <p class="calendar-day-detail__meta">${formatPointsShort(pts)}${dotNote}</p>`;
 }
 
-function renderFullHistory() {
-  const list = document.getElementById("history-full-list");
-  const all = getHistorySorted();
-  list.innerHTML = all.map(renderDayRow).join("");
+function setCalendarView(view) {
+  state.calendarView = view;
+  document.querySelectorAll(".calendar-view-toggle__btn").forEach((btn) => {
+    btn.classList.toggle("calendar-view-toggle__btn--active", btn.dataset.calView === view);
+  });
+  renderCalendar();
 }
 
-function openHistoryModal() {
+function calendarNavigate(delta) {
+  if (state.calendarView === "year") {
+    state.calendarYear += delta;
+  } else if (state.calendarView === "month") {
+    state.calendarMonth += delta;
+    if (state.calendarMonth > 11) {
+      state.calendarMonth = 0;
+      state.calendarYear++;
+    } else if (state.calendarMonth < 0) {
+      state.calendarMonth = 11;
+      state.calendarYear--;
+    }
+  } else {
+    const base = state.selectedCalendarDay || todayIso();
+    const d = new Date(base + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    state.selectedCalendarDay = isoFromParts(d.getFullYear(), d.getMonth(), d.getDate());
+    state.calendarYear = d.getFullYear();
+    state.calendarMonth = d.getMonth();
+  }
+  renderCalendar();
+}
+
+function renderMonthCalendar() {
+  const y = state.calendarYear;
+  const m = state.calendarMonth;
+  const first = new Date(y, m, 1);
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const startPad = (first.getDay() + 6) % 7;
+  const today = todayIso();
+  const weekdays = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+
+  let cells = "";
+  for (let i = 0; i < startPad; i++) {
+    cells += '<span class="calendar-day calendar-day--empty"></span>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = isoFromParts(y, m, d);
+    const km = getKmForDate(iso);
+    const selected = iso === state.selectedCalendarDay;
+    const isToday = iso === today;
+    const dot = qualifiesGreenDot(km) ? '<span class="calendar-day__dot" aria-hidden="true"></span>' : "";
+    cells += `<button type="button" class="calendar-day${selected ? " calendar-day--selected" : ""}${isToday ? " calendar-day--today" : ""}" data-date="${iso}">${d}${dot}</button>`;
+  }
+
+  document.getElementById("cal-nav-title").textContent = first.toLocaleDateString("sk-SK", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return `
+    <div class="calendar-weekdays">${weekdays.map((w) => `<span>${w}</span>`).join("")}</div>
+    <div class="calendar-grid">${cells}</div>`;
+}
+
+function renderYearCalendar() {
+  const y = state.calendarYear;
+  const months = Array.from({ length: 12 }, (_, mi) => {
+    const prefix = isoFromParts(y, mi, 1).slice(0, 7);
+    const entries = state.history.filter((h) => h.date.startsWith(prefix));
+    const totalKm = entries.reduce((s, h) => s + h.km, 0);
+    const greenDays = entries.filter((h) => qualifiesGreenDot(h.km)).length;
+    const name = new Date(y, mi, 1).toLocaleDateString("sk-SK", { month: "short" });
+    const active = mi === state.calendarMonth ? " calendar-year-month--active" : "";
+    return `<button type="button" class="calendar-year-month${active}" data-month="${mi}">
+      <span class="calendar-year-month__name">${name}</span>
+      <span class="calendar-year-month__meta">${totalKm.toFixed(0)} km · ${greenDays} dní ●</span>
+    </button>`;
+  });
+
+  document.getElementById("cal-nav-title").textContent = String(y);
+  return `<div class="calendar-year-grid">${months.join("")}</div>`;
+}
+
+function renderDayCalendar() {
+  const iso = state.selectedCalendarDay || todayIso();
+  const km = getKmForDate(iso);
+  const d = new Date(iso + "T12:00:00");
+
+  document.getElementById("cal-nav-title").textContent = d.toLocaleDateString("sk-SK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (km == null) {
+    return `<div class="calendar-day-view"><p class="calendar-day-view__sub">Žiadne údaje o chôdzi.</p></div>`;
+  }
+
+  return `
+    <div class="calendar-day-view">
+      <div class="calendar-day-view__km">${km.toFixed(1)} km</div>
+      <p class="calendar-day-view__sub">${formatPointsShort(getPointsForKm(km))}${qualifiesGreenDot(km) ? " · zelená bodka" : ""}</p>
+    </div>`;
+}
+
+function renderCalendar() {
   syncTodayToHistory();
-  renderFullHistory();
-  const modal = document.getElementById("history-modal");
+  if (!state.selectedCalendarDay) state.selectedCalendarDay = todayIso();
+
+  const body = document.getElementById("calendar-body");
+  if (!body) return;
+
+  if (state.calendarView === "year") {
+    body.innerHTML = renderYearCalendar();
+  } else if (state.calendarView === "day") {
+    body.innerHTML = renderDayCalendar();
+  } else {
+    body.innerHTML = renderMonthCalendar();
+  }
+
+  updateCalendarDayDetail(state.selectedCalendarDay);
+}
+
+function onCalendarBodyClick(e) {
+  const dayBtn = e.target.closest("[data-date]");
+  if (dayBtn) {
+    state.selectedCalendarDay = dayBtn.dataset.date;
+    renderCalendar();
+    return;
+  }
+  const monthBtn = e.target.closest("[data-month]");
+  if (monthBtn) {
+    state.calendarMonth = Number(monthBtn.dataset.month);
+    state.calendarView = "month";
+    setCalendarView("month");
+  }
+}
+
+function openCalendarModal() {
+  syncTodayToHistory();
+  if (!state.selectedCalendarDay) state.selectedCalendarDay = todayIso();
+  renderCalendar();
+  const modal = document.getElementById("calendar-modal");
   modal.hidden = false;
   document.body.style.overflow = "hidden";
 }
 
-function closeHistoryModal() {
-  document.getElementById("history-modal").hidden = true;
+function closeCalendarModal() {
+  document.getElementById("calendar-modal").hidden = true;
   document.body.style.overflow = "";
+}
+
+function isCalendarOpen() {
+  const modal = document.getElementById("calendar-modal");
+  return modal && !modal.hidden;
 }
 
 function updateRing() {
   const step = state.goalKm;
   const km = state.kmToday;
   const pointsToday = getPointsForKm(km);
-  const maxKm = step * MAX_POINTS_PER_DAY;
-  const pct = maxKm > 0 ? Math.min(km / maxKm, 1) : 0;
   const len = getTrackPathLength();
-  const offset = len * (1 - pct);
 
-  const ring = document.getElementById("ring-progress");
-  ring.style.strokeDasharray = `${len}`;
-  ring.style.strokeDashoffset = String(offset);
-  ring.classList.toggle("ring__progress--done", pointsToday >= MAX_POINTS_PER_DAY);
+  const tier1Pct = step > 0 ? Math.min(km / step, 1) : 0;
+  const tier2Pct = km > step && step > 0 ? Math.min((km - step) / step, 1) : 0;
+  const tier3Pct = km > step * 2 && step > 0 ? Math.min((km - step * 2) / step, 1) : 0;
+
+  setRingTier("ring-progress-1", tier1Pct, len);
+  setRingTier("ring-progress-2", tier2Pct, len);
+  setRingTier("ring-progress-3", tier3Pct, len);
 
   document.getElementById("km-today").textContent = km.toFixed(1);
-  const goalEl = document.getElementById("km-goal");
-  if (goalEl) goalEl.textContent = String(step);
 
   const status = document.getElementById("goal-status");
 
@@ -298,10 +458,20 @@ function rebuildDailyPointsFromHistory() {
   state.dailyPoints = [...otherMonths, ...rows].sort((a, b) => b.date.localeCompare(a.date));
 }
 
+function dayAbbrSk(iso) {
+  const d = new Date(iso + "T12:00:00");
+  const abbr = d.toLocaleDateString("sk-SK", { weekday: "short" }).replace(".", "");
+  return abbr.slice(0, 2).toUpperCase();
+}
+
 function renderTickets() {
   const now = new Date();
-  const monthRows = getMonthDailyPoints();
-  const totalPoints = monthRows.reduce((s, d) => s + d.points, 0);
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const today = todayIso();
+
+  const totalPoints = getMonthDailyPoints().reduce((s, d) => s + d.points, 0);
 
   document.getElementById("tickets-month").textContent = now.toLocaleDateString(
     "sk-SK",
@@ -310,22 +480,25 @@ function renderTickets() {
   document.getElementById("tickets-count").textContent = String(totalPoints);
   document.getElementById("tickets-count-label").textContent = pluralBody(totalPoints);
 
-  const list = document.getElementById("ticket-list");
-  if (monthRows.length === 0) {
-    list.innerHTML =
-      '<li class="ticket-list__item"><span class="day-row__sub">Zatiaľ žiadne body tento mesiac.</span></li>';
-    return;
+  let cells = "";
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = isoFromParts(y, m, d);
+    const km = getKmForDate(iso);
+    const pts = km != null ? getPointsForKm(km) : 0;
+    const ptsTier = pts >= 3 ? 3 : pts >= 2 ? 2 : pts >= 1 ? 1 : 0;
+    const ptsClass = ptsTier ? ` points-cell--p${ptsTier}` : "";
+    const todayClass = iso === today ? " points-cell--today" : "";
+    const kmText = km != null ? `${km.toFixed(1)} km` : "— km";
+
+    cells += `
+      <div class="points-cell${ptsClass}${todayClass}" title="${d}. ${formatShortSk(iso)}">
+        <span class="points-cell__wd">${dayAbbrSk(iso)}</span>
+        <span class="points-cell__pts-big">${pts}</span>
+        <span class="points-cell__km-sm">${kmText}</span>
+      </div>`;
   }
 
-  list.innerHTML = monthRows
-    .map(
-      (t) => `
-    <li class="ticket-list__item">
-      <span class="ticket-list__date">${formatShortSk(t.date)}</span>
-      <span class="ticket-list__tag ticket-list__tag--pts">${formatPointsShort(t.points)} · ${t.km.toFixed(1)} km</span>
-    </li>`
-    )
-    .join("");
+  document.getElementById("ticket-list").innerHTML = `<div class="points-month-grid">${cells}</div>`;
 }
 
 function currentMonthKey() {
@@ -350,6 +523,8 @@ function loadAdminGoal() {
   }
   const el = document.getElementById("display-goal");
   if (el) el.textContent = `${state.goalKm} km = 1 bod`;
+  const maxEl = document.getElementById("display-goal-max");
+  if (maxEl) maxEl.textContent = `max ${MAX_POINTS_PER_DAY} body / deň`;
   const hint = document.getElementById("hint-km-per-point");
   if (hint) hint.textContent = String(state.goalKm);
 }
@@ -471,35 +646,6 @@ function renderSmallWinnerRow(w, prizeEur) {
     </li>`;
 }
 
-function renderPrizePoolCard(b) {
-  return `
-    <div class="prize-pool">
-      <h3 class="prize-pool__title">Výhry za mesiac</h3>
-      <dl class="prize-pool__grid">
-        <dt>Platiaci predplatitelia</dt>
-        <dd>${b.payingUsers.toLocaleString("sk-SK")} × ${formatEur(b.priceMonthly)}</dd>
-        <dt>Tržby spolu</dt>
-        <dd>${formatEur(b.revenue)}</dd>
-        <dt>Pre vás (30 %)</dt>
-        <dd class="prize-pool__owner">${formatEur(b.ownerAmount)}</dd>
-        <dt>Výhry spolu (70 %)</dt>
-        <dd class="prize-pool__highlight">${formatEur(b.poolAmount)}</dd>
-        <dt>1. cena (25 % výhier)</dt>
-        <dd>${formatEur(b.firstPrize)}</dd>
-        <dt>2. cena (15 % výhier)</dt>
-        <dd>${formatEur(b.secondPrize)}</dd>
-        <dt>3. cena (10 % výhier)</dt>
-        <dd>${formatEur(b.thirdPrize)}</dd>
-        <dt>70× menšia cena (50 % výhier)</dt>
-        <dd>${formatEur(b.smallPrizeEach)} / osoba</dd>
-      </dl>
-      <p class="prize-pool__note">
-        Rozdelenie 70 % výhier: 25 % + 15 % + 10 % pre prvé tri miesta, zvyšných 50 % rovnomerne medzi 70 výhercov.
-        Počet platiacich sa počíta k poslednému dňu mesiaca.
-      </p>
-    </div>`;
-}
-
 function generateDemoSmallNicks(count, seed) {
   const bases = ["Chodec", "Krok", "Walk", "Fit", "Syn", "Bod", "Km", "Pešiak"];
   return Array.from({ length: count }, (_, i) => ({
@@ -600,7 +746,6 @@ function renderWinners() {
     <div class="winners-status">
       ${formatMonthKey(month)} – ${b.totalWinners} výhercov (3 hlavné + ${PRIZE_CONFIG.smallCount} menších)
     </div>
-    ${renderPrizePoolCard(b)}
     <section class="winners-section">
       <div class="winners-section__head">
         <h3 class="winners-section__title">Hlavné ceny</h3>
@@ -668,7 +813,7 @@ function simulateSync() {
   state.kmToday = Math.round((state.kmToday + extra) * 10) / 10;
   syncTodayToHistory();
   updateRing();
-  renderRecentDays();
+  if (isCalendarOpen()) renderCalendar();
   updatePeriodStats();
 
   const today = todayIso();
@@ -676,9 +821,9 @@ function simulateSync() {
   renderTickets();
 
   const btn = document.getElementById("sync-btn");
-  btn.textContent = "Synchronizované ✓";
+  btn.textContent = "Aktualizované ✓";
   setTimeout(() => {
-    btn.textContent = "Synchronizovať zdravie (demo)";
+    btn.textContent = "Aktualizovať km";
   }, 2000);
 }
 
@@ -718,13 +863,19 @@ function init() {
   syncTodayToHistory();
   updateRing();
   renderTickets();
-  renderRecentDays();
+  state.selectedCalendarDay = todayIso();
   updatePeriodStats();
   startDrawCountdown();
 
-  document.getElementById("history-open-btn").addEventListener("click", openHistoryModal);
-  document.getElementById("history-close-btn").addEventListener("click", closeHistoryModal);
-  document.getElementById("history-backdrop").addEventListener("click", closeHistoryModal);
+  document.getElementById("calendar-open-btn")?.addEventListener("click", openCalendarModal);
+  document.getElementById("calendar-close-btn")?.addEventListener("click", closeCalendarModal);
+  document.getElementById("calendar-backdrop")?.addEventListener("click", closeCalendarModal);
+  document.getElementById("calendar-body")?.addEventListener("click", onCalendarBodyClick);
+  document.getElementById("cal-prev")?.addEventListener("click", () => calendarNavigate(-1));
+  document.getElementById("cal-next")?.addEventListener("click", () => calendarNavigate(1));
+  document.getElementById("cal-view-year")?.addEventListener("click", () => setCalendarView("year"));
+  document.getElementById("cal-view-month")?.addEventListener("click", () => setCalendarView("month"));
+  document.getElementById("cal-view-day")?.addEventListener("click", () => setCalendarView("day"));
 
   document.getElementById("winners-month-select").addEventListener("change", (e) => {
     state.selectedWinnerMonth = e.target.value;

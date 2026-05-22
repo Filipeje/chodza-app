@@ -23,38 +23,36 @@
             <div class="ring ring--stadium" role="img" aria-label="Prejdené kilometre dnes">
               <svg class="ring__svg" viewBox="0 0 240 118" aria-hidden="true">
                 <path
-                  class="ring__field"
-                  d="M 120,26 L 172,26 A 36,38 0 0 1 172,92 L 68,92 A 36,38 0 0 1 68,26 Z"
-                />
-                <path
-                  class="ring__lane ring__lane--inner"
-                  d="M 120,30 L 168,30 A 32,34 0 0 1 168,88 L 72,88 A 32,34 0 0 1 72,30 Z"
-                />
-                <path
                   class="ring__track"
                   d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
                 />
                 <path
-                  class="ring__progress"
-                  id="ring-progress"
+                  class="ring__progress ring__progress--tier1"
+                  id="ring-progress-1"
+                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
+                />
+                <path
+                  class="ring__progress ring__progress--tier2"
+                  id="ring-progress-2"
+                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
+                />
+                <path
+                  class="ring__progress ring__progress--tier3"
+                  id="ring-progress-3"
                   d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
                 />
               </svg>
               <div class="ring__center">
                 <span class="ring__value" id="km-today">0.0</span>
                 <span class="ring__unit">km</span>
-                <p class="ring__goal">
-                  <strong id="km-goal">10</strong> km = 1 bod<br />
-                  <span class="ring__goal-sub">max 3 body / deň</span>
-                </p>
               </div>
             </div>
             <p class="ring-card__status" id="goal-status">Ešte <span id="km-remaining">12.0</span> km do cieľa</p>
-            <button type="button" class="btn btn--ghost" id="sync-btn">Synchronizovať zdravie (demo)</button>
+            <button type="button" class="btn btn--ghost" id="sync-btn">Aktualizovať km</button>
           </div>
 
           <div class="draw-countdown" id="draw-countdown" aria-live="polite">
-            <p class="draw-countdown__label">Do ďalšieho žrebovania</p>
+            <p class="draw-countdown__label">Do ďalšieho odmeňovania</p>
             <p class="draw-countdown__when" id="draw-countdown-when"></p>
             <div class="draw-countdown__grid" id="draw-countdown-grid">
               <div class="draw-countdown__unit">
@@ -98,40 +96,42 @@
             </div>
           </div>
 
-          <section class="recent-days" aria-labelledby="recent-days-title">
+          <section class="calendar-teaser" aria-labelledby="calendar-teaser-title">
             <div class="recent-days__head">
-              <h2 class="recent-days__title" id="recent-days-title">Posledné 3 dni</h2>
+              <h2 class="recent-days__title" id="calendar-teaser-title">Kalendár chôdze</h2>
               <button
                 type="button"
                 class="history-btn"
-                id="history-open-btn"
-                aria-label="Otvoriť históriu chôdze"
-                title="História"
+                id="calendar-open-btn"
+                aria-label="Otvoriť kalendár chôdze"
+                title="Kalendár"
               >
                 <svg class="history-btn__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="currentColor"
-                    d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L16 11h6V5l-2.48 2.48A8.96 8.96 0 0 0 13 3zm-1 5H8v6h4v2H6v-8h6v2z"
+                    d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM5 4h1V2h2v2h8V2h2v2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 16h14V9H5v11z"
                   />
                 </svg>
-                <span>História</span>
+                <span>Kalendár</span>
               </button>
             </div>
-            <ul class="recent-days__list" id="recent-days-list"></ul>
+            <p class="calendar-teaser__hint">Klikni a pozri si km po dňoch · zelená bodka = aspoň 10 km</p>
           </section>
         </section>
 
         <!-- Moje body -->
         <section class="panel" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
-          <div class="tickets-hero">
-            <span class="tickets-hero__count" id="tickets-count">4</span>
-            <span class="tickets-hero__label" id="tickets-count-label">bodov tento mesiac</span>
+          <div class="points-head">
+            <p class="points-head__month" id="tickets-month">máj 2026</p>
+            <p class="points-head__total">
+              <span class="points-head__count" id="tickets-count">0</span>
+              <span id="tickets-count-label">bodov tento mesiac</span>
+            </p>
           </div>
-          <p class="tickets-hero__month" id="tickets-month"></p>
 
-          <ul class="ticket-list" id="ticket-list">
-            <!-- filled by JS -->
-          </ul>
+          <div class="points-month" id="ticket-list">
+            <!-- mriežka dní – filled by JS -->
+          </div>
 
           <p class="hint">
             Za každých <strong id="hint-km-per-point">10</strong> km = 1 bod, maximum 3 body za deň. Hore je súčet všetkých bodov v mesiaci.
@@ -149,7 +149,7 @@
 
           <p class="hint" id="winners-hint">
             Na konci mesiaca sa žrebuje 3× hlavná cena a 70× menšia cena. Výška výhier závisí od počtu
-            platiacich predplatiteľov (70 % tržieb ide na výhry za mesiac).
+            platiacich predplatiteľov.
           </p>
         </section>
 
@@ -165,9 +165,14 @@
           </div>
 
           <ul class="settings-list">
-            <li class="setting setting--readonly">
-              <span>Denný cieľ</span>
-              <span class="setting__value" id="display-goal">10 km = 1 bod</span>
+            <li>
+              <div class="setting setting--readonly setting--goal">
+                <span>Denný cieľ</span>
+                <div class="setting__goal-right">
+                  <span class="setting__value" id="display-goal">10 km = 1 bod</span>
+                  <span class="setting__goal-max" id="display-goal-max">max 3 body / deň</span>
+                </div>
+              </div>
             </li>
             <li>
               <label class="setting setting--toggle">
@@ -210,21 +215,49 @@
       </nav>
     </div>
 
-    <div class="history-modal" id="history-modal" hidden>
-      <div class="history-modal__backdrop" id="history-backdrop"></div>
+    <div class="history-modal" id="calendar-modal" hidden>
+      <div class="history-modal__backdrop" id="calendar-backdrop"></div>
       <div
-        class="history-modal__sheet"
+        class="history-modal__sheet history-modal__sheet--calendar"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="history-modal-title"
+        aria-labelledby="calendar-modal-title"
       >
         <header class="history-modal__header">
-          <h2 id="history-modal-title">História chôdze</h2>
-          <button type="button" class="history-modal__close" id="history-close-btn" aria-label="Zavrieť">
+          <h2 id="calendar-modal-title">Kalendár chôdze</h2>
+          <button type="button" class="history-modal__close" id="calendar-close-btn" aria-label="Zavrieť">
             ✕
           </button>
         </header>
-        <ul class="history-list" id="history-full-list"></ul>
+
+        <div class="calendar-modal__content">
+          <div class="calendar-view-toggle" role="group" aria-label="Zobrazenie kalendára">
+            <button type="button" class="calendar-view-toggle__btn" data-cal-view="year" id="cal-view-year">
+              Ročný
+            </button>
+            <button
+              type="button"
+              class="calendar-view-toggle__btn calendar-view-toggle__btn--active"
+              data-cal-view="month"
+              id="cal-view-month"
+            >
+              Mesačný
+            </button>
+            <button type="button" class="calendar-view-toggle__btn" data-cal-view="day" id="cal-view-day">
+              Denný
+            </button>
+          </div>
+
+          <div class="calendar-nav">
+            <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Predchádzajúce">‹</button>
+            <span class="calendar-nav__title" id="cal-nav-title"></span>
+            <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Ďalšie">›</button>
+          </div>
+
+          <div class="calendar-body" id="calendar-body"></div>
+
+          <div class="calendar-day-detail" id="calendar-day-detail" aria-live="polite"></div>
+        </div>
       </div>
     </div>
 

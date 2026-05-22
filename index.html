@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#6366f1" />
+    <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Chôdza</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <h1 class="header__title" id="page-title">Dnes</h1>
+        <p class="header__date" id="today-date"></p>
+      </header>
+
+      <main class="main">
+        <!-- Domov -->
+        <section class="panel panel--active" id="panel-home" aria-labelledby="nav-home">
+          <div class="ring-card">
+            <div class="ring" role="img" aria-label="Prejdené kilometre dnes">
+              <svg class="ring__svg" viewBox="0 0 120 120">
+                <circle class="ring__track" cx="60" cy="60" r="52" />
+                <circle class="ring__progress" id="ring-progress" cx="60" cy="60" r="52" />
+              </svg>
+              <div class="ring__center">
+                <span class="ring__value" id="km-today">0.0</span>
+                <span class="ring__unit">km</span>
+                <span class="ring__goal">cieľ <strong id="km-goal">12</strong> km</span>
+              </div>
+            </div>
+            <p class="ring-card__status" id="goal-status">Ešte <span id="km-remaining">12.0</span> km do cieľa</p>
+            <button type="button" class="btn btn--ghost" id="sync-btn">Synchronizovať zdravie (demo)</button>
+          </div>
+
+          <div class="draw-countdown" id="draw-countdown" aria-live="polite">
+            <p class="draw-countdown__label">Do ďalšieho žrebovania</p>
+            <p class="draw-countdown__when" id="draw-countdown-when"></p>
+            <div class="draw-countdown__grid" id="draw-countdown-grid">
+              <div class="draw-countdown__unit">
+                <span class="draw-countdown__value" id="cd-days">—</span>
+                <span class="draw-countdown__name">dní</span>
+              </div>
+              <div class="draw-countdown__unit">
+                <span class="draw-countdown__value" id="cd-hours">—</span>
+                <span class="draw-countdown__name">hod</span>
+              </div>
+              <div class="draw-countdown__unit">
+                <span class="draw-countdown__value" id="cd-mins">—</span>
+                <span class="draw-countdown__name">min</span>
+              </div>
+              <div class="draw-countdown__unit">
+                <span class="draw-countdown__value" id="cd-secs">—</span>
+                <span class="draw-countdown__name">sek</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat">
+              <span class="stat__label">Týždeň</span>
+              <span class="stat__value" id="km-week">24.3</span>
+              <span class="stat__unit">km</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">Splnené dni</span>
+              <span class="stat__value" id="days-done">3</span>
+              <span class="stat__unit">/ 7</span>
+            </div>
+          </div>
+
+          <section class="recent-days" aria-labelledby="recent-days-title">
+            <div class="recent-days__head">
+              <h2 class="recent-days__title" id="recent-days-title">Posledné 3 dni</h2>
+              <button
+                type="button"
+                class="history-btn"
+                id="history-open-btn"
+                aria-label="Otvoriť históriu chôdze"
+                title="História"
+              >
+                <svg class="history-btn__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L16 11h6V5l-2.48 2.48A8.96 8.96 0 0 0 13 3zm-1 5H8v6h4v2H6v-8h6v2z"
+                  />
+                </svg>
+                <span>História</span>
+              </button>
+            </div>
+            <ul class="recent-days__list" id="recent-days-list"></ul>
+          </section>
+        </section>
+
+        <!-- Mesačný kôš -->
+        <section class="panel" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
+          <div class="tickets-hero">
+            <span class="tickets-hero__count" id="tickets-count">4</span>
+            <span class="tickets-hero__label" id="tickets-count-label">bodov tento mesiac</span>
+          </div>
+          <p class="tickets-hero__month" id="tickets-month"></p>
+
+          <ul class="ticket-list" id="ticket-list">
+            <!-- filled by JS -->
+          </ul>
+
+          <p class="hint">
+            Za každý deň s ≥ 12 km získaš 1 bod do mesačného koša. Na konci mesiaca sa žrebuje 73 výhercov (3 hlavné + 70 menších cien).
+          </p>
+        </section>
+
+        <!-- Výhercovia / žrebovanie -->
+        <section class="panel" id="panel-winners" aria-labelledby="nav-winners" hidden>
+          <label class="month-picker">
+            <span class="month-picker__label">Mesiac žrebovania</span>
+            <select class="month-picker__select" id="winners-month-select"></select>
+          </label>
+
+          <div id="winners-content"></div>
+
+          <p class="hint" id="winners-hint">
+            Na konci mesiaca sa žrebuje 3× hlavná cena a 70× menšia cena. Výška výhier závisí od počtu
+            platiacich predplatiteľov (70 % tržieb ide na výhry za mesiac).
+          </p>
+        </section>
+
+        <!-- Profil -->
+        <section class="panel" id="panel-profile" aria-labelledby="nav-profile" hidden>
+          <div class="profile-card">
+            <div class="avatar" aria-hidden="true">S</div>
+            <div>
+              <p class="profile-card__name" id="user-name">Synko</p>
+              <p class="profile-card__email" id="user-email">synko@example.sk</p>
+              <span class="badge badge--free" id="sub-badge">Bez predplatného</span>
+            </div>
+          </div>
+
+          <ul class="settings-list">
+            <li>
+              <label class="setting">
+                <span>Denný cieľ (km)</span>
+                <input type="number" id="setting-goal" min="1" max="50" value="12" />
+              </label>
+            </li>
+            <li>
+              <label class="setting setting--toggle">
+                <span>Notifikácie</span>
+                <input type="checkbox" id="setting-notify" checked />
+              </label>
+            </li>
+            <li>
+              <label class="setting setting--toggle">
+                <span>Tmavý režim</span>
+                <input type="checkbox" id="setting-dark" />
+              </label>
+            </li>
+          </ul>
+
+          <button type="button" class="btn btn--primary btn--block" id="upgrade-btn">
+            Premium – 3,99 € / mesiac
+          </button>
+          <p class="hint hint--center">Stripe + Supabase pripojíme v kroku 3</p>
+        </section>
+      </main>
+
+      <nav class="nav" aria-label="Hlavná navigácia">
+        <button type="button" class="nav__item nav__item--active" id="nav-home" data-panel="home">
+          <span class="nav__icon" aria-hidden="true">◎</span>
+          <span class="nav__label">Dnes</span>
+        </button>
+        <button type="button" class="nav__item" id="nav-tickets" data-panel="tickets">
+          <span class="nav__icon" aria-hidden="true">🧺</span>
+          <span class="nav__label">Mesačný kôš</span>
+        </button>
+        <button type="button" class="nav__item" id="nav-winners" data-panel="winners">
+          <span class="nav__icon" aria-hidden="true">🏆</span>
+          <span class="nav__label">Výherci</span>
+        </button>
+        <button type="button" class="nav__item" id="nav-profile" data-panel="profile">
+          <span class="nav__icon" aria-hidden="true">👤</span>
+          <span class="nav__label">Profil</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="history-modal" id="history-modal" hidden>
+      <div class="history-modal__backdrop" id="history-backdrop"></div>
+      <div
+        class="history-modal__sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-modal-title"
+      >
+        <header class="history-modal__header">
+          <h2 id="history-modal-title">História chôdze</h2>
+          <button type="button" class="history-modal__close" id="history-close-btn" aria-label="Zavrieť">
+            ✕
+          </button>
+        </header>
+        <ul class="history-list" id="history-full-list"></ul>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

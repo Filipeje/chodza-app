@@ -3,8 +3,12 @@
  * Dočasne v konzole prehliadača: localStorage.setItem("chodza-admin-goal", "10")
  */
 const ADMIN_GOAL_KM = 10;
-const MAX_POINTS_PER_DAY = 3;
+const DEFAULT_MAX_POINTS_PER_DAY = 3;
 let trackPathLength = 0;
+
+function getMaxPointsPerDay() {
+  return state.maxPointsPerDay ?? DEFAULT_MAX_POINTS_PER_DAY;
+}
 
 function getTrackPathLength() {
   const el = document.getElementById("ring-progress-1");
@@ -33,6 +37,7 @@ const PRIZE_CONFIG = {
 
 const state = {
   goalKm: ADMIN_GOAL_KM,
+  maxPointsPerDay: DEFAULT_MAX_POINTS_PER_DAY,
   kmToday: 7.4,
   statsPeriod: "week",
   history: [],
@@ -187,7 +192,7 @@ function dayLabel(iso) {
 function getPointsForKm(km) {
   const step = state.goalKm;
   if (!step || step <= 0) return 0;
-  return Math.min(MAX_POINTS_PER_DAY, Math.floor(km / step));
+  return Math.min(getMaxPointsPerDay(), Math.floor(km / step));
 }
 
 function formatPointsShort(n) {
@@ -403,8 +408,9 @@ function updateRing() {
 
   const status = document.getElementById("goal-status");
 
-  if (pointsToday >= MAX_POINTS_PER_DAY) {
-    status.textContent = `Maximum ${MAX_POINTS_PER_DAY} body za dnes!`;
+  const maxPts = getMaxPointsPerDay();
+  if (pointsToday >= maxPts) {
+    status.textContent = `Maximum ${maxPts} body za dnes!`;
     status.style.color = "var(--success)";
   } else if (pointsToday > 0) {
     const nextAt = (pointsToday + 1) * step;
@@ -514,19 +520,58 @@ function getPreviousMonthKey() {
 }
 
 function loadAdminGoal() {
-  const saved = localStorage.getItem("chodza-admin-goal");
-  if (saved) {
-    const n = Number(saved);
-    if (n >= 1 && n <= 50) state.goalKm = n;
-  } else {
-    state.goalKm = ADMIN_GOAL_KM;
-  }
+  const s =
+    typeof ChodzaSettings !== "undefined"
+      ? ChodzaSettings.read(currentMonthKey())
+      : { goalKmPerPoint: ADMIN_GOAL_KM, maxPointsPerDay: DEFAULT_MAX_POINTS_PER_DAY };
+
+  if (s.goalKmPerPoint >= 1 && s.goalKmPerPoint <= 50) state.goalKm = s.goalKmPerPoint;
+  else state.goalKm = ADMIN_GOAL_KM;
+
+  if (s.maxPointsPerDay >= 1 && s.maxPointsPerDay <= 10) state.maxPointsPerDay = s.maxPointsPerDay;
+  else state.maxPointsPerDay = DEFAULT_MAX_POINTS_PER_DAY;
+
+  updateAdminGoalUi();
+}
+
+function updateAdminGoalUi() {
+  const km = state.goalKm;
+  const maxPts = getMaxPointsPerDay();
+
   const el = document.getElementById("display-goal");
-  if (el) el.textContent = `${state.goalKm} km = 1 bod`;
+  if (el) el.textContent = `${km} km = 1 bod`;
+
   const maxEl = document.getElementById("display-goal-max");
-  if (maxEl) maxEl.textContent = `max ${MAX_POINTS_PER_DAY} body / deň`;
+  if (maxEl) maxEl.textContent = `max ${maxPts} ${maxPts === 1 ? "bod" : maxPts < 5 ? "body" : "bodov"} / deň`;
+
   const hint = document.getElementById("hint-km-per-point");
-  if (hint) hint.textContent = String(state.goalKm);
+  if (hint) hint.textContent = String(km);
+
+  const hintMax = document.getElementById("hint-max-points");
+  if (hintMax) hintMax.textContent = String(maxPts);
+
+  const calHint = document.getElementById("calendar-goal-hint");
+  if (calHint) {
+    calHint.textContent = `Klikni a pozri si km po dňoch · zelená bodka = aspoň ${km} km`;
+  }
+}
+
+function refreshAfterAdminSettings() {
+  loadAdminGoal();
+  rebuildDailyPointsFromHistory();
+  syncTodayToHistory();
+  updateRing();
+  renderTickets();
+  if (state.calendarView) renderCalendar();
+}
+
+function loadWinnersFromAdmin() {
+  try {
+    const raw = localStorage.getItem("chodza-winners-by-month");
+    if (!raw) return;
+    const map = JSON.parse(raw);
+    Object.assign(state.winnersByMonth, map);
+  } catch (_) {}
 }
 
 function getPeriodHistory(period) {
@@ -600,6 +645,15 @@ function calculatePrizeBreakdown(payingUsers, priceMonthly = PRIZE_CONFIG.priceM
   const revenue = payingUsers * priceMonthly;
   const ownerAmount = revenue * PRIZE_CONFIG.ownerShare;
   const poolAmount = revenue * PRIZE_CONFIG.prizePoolShare;
+  return prizeAmountsFromPool(poolAmount, { payingUsers, priceMonthly, revenue, ownerAmount });
+}
+
+/** Admin nastaví mesačný kôš priamo v € */
+function calculatePrizeFromManualPool(poolEur) {
+  return prizeAmountsFromPool(Number(poolEur) || 0, { manualPoolEur: poolEur });
+}
+
+function prizeAmountsFromPool(poolAmount, extra = {}) {
   const { first, second, third, small } = PRIZE_CONFIG.poolSplit;
   const firstPrize = poolAmount * first;
   const secondPrize = poolAmount * second;
@@ -608,16 +662,13 @@ function calculatePrizeBreakdown(payingUsers, priceMonthly = PRIZE_CONFIG.priceM
   const smallPrizeEach = smallTotal / PRIZE_CONFIG.smallCount;
 
   return {
-    payingUsers,
-    priceMonthly,
-    revenue,
-    ownerAmount,
     poolAmount,
     firstPrize,
     secondPrize,
     thirdPrize,
     smallPrizeEach,
     totalWinners: PRIZE_CONFIG.mainCount + PRIZE_CONFIG.smallCount,
+    ...extra,
   };
 }
 
@@ -654,6 +705,7 @@ function generateDemoSmallNicks(count, seed) {
 }
 
 function seedDemoWinners() {
+  loadWinnersFromAdmin();
   if (Object.keys(state.winnersByMonth).length > 0) return;
 
   const prev = getPreviousMonthKey();
@@ -737,7 +789,10 @@ function renderWinners() {
     return;
   }
 
-  const b = calculatePrizeBreakdown(draw.payingUsers, draw.priceMonthly ?? PRIZE_CONFIG.priceMonthly);
+  const b =
+    draw.manualPoolEur != null
+      ? calculatePrizeFromManualPool(draw.manualPoolEur)
+      : calculatePrizeBreakdown(draw.payingUsers, draw.priceMonthly ?? PRIZE_CONFIG.priceMonthly);
   const mainPrizes = [b.firstPrize, b.secondPrize, b.thirdPrize];
   const collapsedClass = smallWinnersExpanded ? "" : " winners-list--collapsed";
   const toggleLabel = smallWinnersExpanded ? "Zbaliť zoznam" : `Zobraziť všetkých (${draw.small.length})`;
@@ -787,6 +842,10 @@ function showPanel(name) {
   });
 
   document.getElementById("page-title").textContent = titles[name] || name;
+
+  if (name === "home" || name === "tickets" || name === "profile") {
+    refreshAfterAdminSettings();
+  }
 
   if (name === "winners") {
     if (!state.selectedWinnerMonth || !state.winnersByMonth[state.selectedWinnerMonth]?.main?.length) {
@@ -838,7 +897,32 @@ function seedDemoHistory() {
   state.kmToday = state.history[0].km;
 }
 
+function applySettingsFromUrl() {
+  if (typeof ChodzaSettings === "undefined") return;
+
+  ChodzaSettings.importBridge(currentMonthKey());
+
+  const p = new URLSearchParams(location.search);
+  if (p.has("goalKm") || p.has("maxPoints")) {
+    const cur = ChodzaSettings.read(currentMonthKey());
+    const payload = { ...cur };
+    if (p.has("goalKm")) {
+      const g = Number(p.get("goalKm"));
+      if (g >= 1 && g <= 50) payload.goalKmPerPoint = g;
+    }
+    if (p.has("maxPoints")) {
+      const m = Number(p.get("maxPoints"));
+      if (m >= 1 && m <= 10) payload.maxPointsPerDay = m;
+    }
+    ChodzaSettings.write(currentMonthKey(), payload);
+  }
+
+  const hash = ChodzaSettings.encodeHash(ChodzaSettings.read(currentMonthKey()));
+  history.replaceState({}, "", `index.html${hash}`);
+}
+
 function init() {
+  applySettingsFromUrl();
   seedDemoHistory();
   seedDemoWinners();
   loadAdminGoal();
@@ -866,6 +950,32 @@ function init() {
   state.selectedCalendarDay = todayIso();
   updatePeriodStats();
   startDrawCountdown();
+
+  window.addEventListener("storage", (e) => {
+    if (
+      e.key === "chodza-admin-goal" ||
+      e.key === "chodza-active-settings" ||
+      (e.key && e.key.startsWith("chodza-month-settings-"))
+    ) {
+      refreshAfterAdminSettings();
+    }
+  });
+  window.addEventListener("chodza-settings-changed", () => refreshAfterAdminSettings());
+  window.addEventListener("hashchange", () => {
+    if (typeof ChodzaSettings !== "undefined") ChodzaSettings.importBridge(currentMonthKey());
+    refreshAfterAdminSettings();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      if (typeof ChodzaSettings !== "undefined") ChodzaSettings.importBridge(currentMonthKey());
+      refreshAfterAdminSettings();
+    }
+  });
+  window.addEventListener("focus", () => {
+    if (typeof ChodzaSettings !== "undefined") ChodzaSettings.importBridge(currentMonthKey());
+    refreshAfterAdminSettings();
+  });
+  window.addEventListener("pageshow", () => refreshAfterAdminSettings());
 
   document.getElementById("calendar-open-btn")?.addEventListener("click", openCalendarModal);
   document.getElementById("calendar-close-btn")?.addEventListener("click", closeCalendarModal);

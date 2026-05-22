@@ -115,7 +115,7 @@
                 <span>Kalendár</span>
               </button>
             </div>
-            <p class="calendar-teaser__hint">Klikni a pozri si km po dňoch · zelená bodka = aspoň 10 km</p>
+            <p class="calendar-teaser__hint" id="calendar-goal-hint">Klikni a pozri si km po dňoch · zelená bodka = splnený denný cieľ</p>
           </section>
         </section>
 
@@ -133,8 +133,9 @@
             <!-- mriežka dní – filled by JS -->
           </div>
 
-          <p class="hint">
-            Za každých <strong id="hint-km-per-point">10</strong> km = 1 bod, maximum 3 body za deň. Hore je súčet všetkých bodov v mesiaci.
+          <p class="hint" id="tickets-points-hint">
+            Za každých <strong id="hint-km-per-point">10</strong> km = 1 bod, maximum
+            <strong id="hint-max-points">3</strong> body za deň. Hore je súčet všetkých bodov v mesiaci.
           </p>
         </section>
 
@@ -192,6 +193,7 @@
             Premium – 3,99 € / mesiac
           </button>
           <p class="hint hint--center">Denný cieľ nastavuje administrátor. Stripe + Supabase pripojíme v kroku 3.</p>
+          <p class="hint hint--center"><a href="admin.html">Administrácia</a></p>
         </section>
       </main>
 
@@ -261,6 +263,7 @@
       </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="scripts/settings-store.js?v=2"></script>
+    <script src="app.js?v=2"></script>
   </body>
 </html>

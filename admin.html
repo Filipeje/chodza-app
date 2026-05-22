@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#3d5c3b" />
+    <title>Chôdza – Admin</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-brand">
+          <span class="admin-brand__icon" aria-hidden="true">🚶</span>
+          <div>
+            <strong>Chôdza</strong>
+            <span class="admin-brand__sub">Administrácia</span>
+          </div>
+        </div>
+        <nav class="admin-nav" aria-label="Sekcie">
+          <a href="#settings" class="admin-nav__link admin-nav__link--active">Mesačné nastavenia</a>
+          <a href="#users" class="admin-nav__link">Používatelia</a>
+          <a href="#draw" class="admin-nav__link">Uzatvorenie mesiaca</a>
+        </nav>
+        <p class="admin-sidebar__foot">
+          <span class="badge badge--demo">Demo dáta</span><br />
+          Pripravené na Supabase
+        </p>
+        <a href="index.html" class="admin-sidebar__back">← Späť do aplikácie</a>
+      </aside>
+
+      <div class="admin-main">
+        <header class="admin-topbar">
+          <div>
+            <h1 class="admin-topbar__title">Správa platformy</h1>
+            <p class="admin-topbar__meta" id="admin-month-label"></p>
+          </div>
+          <div class="admin-topbar__actions">
+            <span class="badge" id="data-source-badge">Mock API</span>
+          </div>
+        </header>
+
+        <main class="admin-content">
+          <!-- Globálne nastavenia mesiaca -->
+          <section class="admin-card" id="settings">
+            <div class="admin-card__head">
+              <h2>Správa aktuálneho mesiaca</h2>
+              <p class="admin-card__desc">Globálne nastavenia platné pre všetkých používateľov v tomto mesiaci.</p>
+            </div>
+            <form class="admin-form" id="month-settings-form" novalidate>
+              <div class="admin-form__grid">
+                <fieldset class="admin-fieldset">
+                  <legend>Finančný mesačný kôš</legend>
+                  <label class="admin-label" for="prize-pool-eur">Výška finančnej výhry (€)</label>
+                  <div class="admin-input-wrap">
+                    <input
+                      type="number"
+                      id="prize-pool-eur"
+                      name="prizePoolEur"
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="1500"
+                    />
+                    <span class="admin-input-suffix">€</span>
+                  </div>
+                  <p class="admin-hint">Suma rozdelená medzi 3 hlavné a 70 menších cien (podiely nie sú verejné).</p>
+                </fieldset>
+
+                <fieldset class="admin-fieldset">
+                  <legend>Obtiažnosť bodu</legend>
+                  <label class="admin-label" for="goal-type">Typ cieľa</label>
+                  <select id="goal-type" name="goalType">
+                    <option value="walk_km" selected>Chôdza v km</option>
+                  </select>
+                  <label class="admin-label" for="goal-km">Km na 1 bod</label>
+                  <div class="admin-input-wrap">
+                    <input type="number" id="goal-km" name="goalKmPerPoint" min="1" max="50" step="0.5" required />
+                    <span class="admin-input-suffix">km</span>
+                  </div>
+                  <label class="admin-label" for="max-points">Max. bodov za deň</label>
+                  <input type="number" id="max-points" name="maxPointsPerDay" min="1" max="10" value="3" required />
+                </fieldset>
+              </div>
+              <div class="admin-form__actions">
+                <button type="submit" class="btn btn--primary">Uložiť nastavenia pre tento mesiac</button>
+                <p class="admin-form__status" id="settings-save-status" role="status" aria-live="polite"></p>
+              </div>
+            </form>
+          </section>
+
+          <!-- Používatelia -->
+          <section class="admin-card" id="users">
+            <div class="admin-card__head admin-card__head--row">
+              <div>
+                <h2>Používatelia</h2>
+                <p class="admin-card__desc">Prehľad registrovaných účtov a bodov v aktuálnom mesiaci.</p>
+              </div>
+              <div class="admin-search">
+                <label class="visually-hidden" for="user-search">Hľadať</label>
+                <input
+                  type="search"
+                  id="user-search"
+                  placeholder="Meno alebo e-mail…"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="users-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Meno</th>
+                    <th>E-mail</th>
+                    <th>Predplatné</th>
+                    <th>Body (mesiac)</th>
+                    <th>Level</th>
+                    <th>História výhier</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+              <p class="admin-table-empty" id="users-empty" hidden>Žiadni používatelia nevyhovujú hľadaniu.</p>
+            </div>
+          </section>
+
+          <!-- Uzatvorenie mesiaca -->
+          <section class="admin-card" id="draw">
+            <div class="admin-card__head">
+              <h2>Simulácia uzatvorenia mesiaca</h2>
+              <p class="admin-card__desc">
+                Spustí žrebovanie (3 hlavné + 70 menších cien), zapíše výhercov a vynuluje mesačné body všetkým.
+                Od 1. dňa mesiaca sa body znova zbierajú od nuly.
+              </p>
+            </div>
+            <div class="admin-draw-actions">
+              <button type="button" class="btn btn--danger" id="btn-close-month">
+                Uzatvoriť mesiac a spustiť žrebovanie
+              </button>
+              <p class="admin-hint admin-hint--warn">
+                Testovacia akcia – v produkcii len po skutočnom konci mesiaca. Prioritizácia dlhodobo nevýherných je skrytá.
+              </p>
+            </div>
+            <div class="draw-results" id="draw-results" hidden>
+              <h3 class="draw-results__title">Výsledok žrebovania</h3>
+              <p class="draw-results__meta" id="draw-results-meta"></p>
+              <div class="draw-results__grid">
+                <div class="draw-panel">
+                  <h4>Hlavné ceny (3)</h4>
+                  <ol class="draw-list" id="draw-main-list"></ol>
+                </div>
+                <div class="draw-panel">
+                  <h4>Menšie ceny (70)</h4>
+                  <ol class="draw-list draw-list--compact" id="draw-small-list"></ol>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- Modal detail používateľa -->
+    <dialog class="admin-modal" id="user-modal">
+      <div class="admin-modal__inner">
+        <header class="admin-modal__head">
+          <h2 id="modal-user-title">Detail používateľa</h2>
+          <button type="button" class="admin-modal__close" id="modal-close" aria-label="Zavrieť">×</button>
+        </header>
+        <div class="admin-modal__body" id="modal-user-body"></div>
+      </div>
+    </dialog>
+
+    <script src="scripts/settings-store.js?v=2"></script>
+    <script src="scripts/draw-core.js"></script>
+    <script src="admin.js?v=2"></script>
+  </body>
+</html>

@@ -1,4 +1,8 @@
-const GOAL_DEFAULT = 12;
+/**
+ * Denný cieľ nastavuje administrátor (neskôr admin panel / Supabase).
+ * Dočasne v konzole prehliadača: localStorage.setItem("chodza-admin-goal", "10")
+ */
+const ADMIN_GOAL_KM = 12;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
 
 /** Rozdelenie výhier za mesiac (70 % tržieb) – súčet = 100 % */
@@ -12,8 +16,9 @@ const PRIZE_CONFIG = {
 };
 
 const state = {
-  goalKm: GOAL_DEFAULT,
+  goalKm: ADMIN_GOAL_KM,
   kmToday: 7.4,
+  statsPeriod: "week",
   history: [],
   tickets: [
     { date: "2026-05-05", earned: true },
@@ -28,7 +33,7 @@ const state = {
 
 const titles = {
   home: "Dnes",
-  tickets: "Mesačný kôš",
+  tickets: "Moje body",
   winners: "Výhercovia",
   profile: "Profil",
 };
@@ -222,7 +227,7 @@ function updateRing() {
   const remaining = document.getElementById("km-remaining");
 
   if (done) {
-    status.textContent = "Cieľ splnený – máš bod do mesačného koša!";
+    status.textContent = "Cieľ splnený – máš bod!";
     status.style.color = "var(--success)";
   } else {
     const left = (goal - km).toFixed(1);
@@ -263,6 +268,77 @@ function renderTickets() {
 function currentMonthKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getPreviousMonthKey() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function loadAdminGoal() {
+  const saved = localStorage.getItem("chodza-admin-goal");
+  if (saved) {
+    const n = Number(saved);
+    if (n >= 1 && n <= 50) state.goalKm = n;
+  } else {
+    state.goalKm = ADMIN_GOAL_KM;
+  }
+  const el = document.getElementById("display-goal");
+  if (el) el.textContent = `${state.goalKm} km`;
+}
+
+function getPeriodHistory(period) {
+  const today = todayIso();
+  const sorted = getHistorySorted();
+
+  if (period === "week") {
+    const from = addDays(today, -6);
+    return sorted.filter((h) => h.date >= from && h.date <= today);
+  }
+
+  const monthKey = currentMonthKey();
+  return sorted.filter((h) => h.date.startsWith(monthKey));
+}
+
+function updatePeriodStats() {
+  const period = state.statsPeriod;
+  const entries = getPeriodHistory(period);
+  const totalKm = entries.reduce((s, h) => s + h.km, 0);
+  const done = entries.filter((h) => h.km >= state.goalKm).length;
+
+  const kmLabel = document.getElementById("stat-km-label");
+  const kmVal = document.getElementById("km-period");
+  const daysDone = document.getElementById("days-done");
+  const daysTotal = document.getElementById("days-done-total");
+
+  if (period === "week") {
+    kmLabel.textContent = "Km tento týždeň";
+    daysTotal.textContent = "/ 7";
+  } else {
+    kmLabel.textContent = "Km tento mesiac";
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    daysTotal.textContent = `/ ${daysInMonth}`;
+  }
+
+  kmVal.textContent = totalKm.toFixed(1);
+  daysDone.textContent = String(done);
+
+  document.getElementById("period-week")?.classList.toggle(
+    "period-toggle__btn--active",
+    period === "week"
+  );
+  document.getElementById("period-month")?.classList.toggle(
+    "period-toggle__btn--active",
+    period === "month"
+  );
+}
+
+function setStatsPeriod(period) {
+  state.statsPeriod = period;
+  updatePeriodStats();
 }
 
 function formatMonthKey(key) {
@@ -369,7 +445,10 @@ function generateDemoSmallNicks(count, seed) {
 function seedDemoWinners() {
   if (Object.keys(state.winnersByMonth).length > 0) return;
 
-  state.winnersByMonth["2026-04"] = {
+  const prev = getPreviousMonthKey();
+  const prevSeed = prev.replace("-", "");
+
+  state.winnersByMonth[prev] = {
     payingUsers: 1000,
     priceMonthly: 3.99,
     main: [
@@ -377,10 +456,17 @@ function seedDemoWinners() {
       { place: 2, nick: "Krokomerista" },
       { place: 3, nick: "SynkoWalk" },
     ],
-    small: generateDemoSmallNicks(70, "04"),
+    small: generateDemoSmallNicks(70, prevSeed),
   };
 
-  state.winnersByMonth["2026-03"] = {
+  const twoBack = (() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 2);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  state.winnersByMonth[twoBack] = {
     payingUsers: 650,
     priceMonthly: 3.99,
     main: [
@@ -388,12 +474,21 @@ function seedDemoWinners() {
       { place: 2, nick: "12km_den" },
       { place: 3, nick: "ZochodMa" },
     ],
-    small: generateDemoSmallNicks(70, "03"),
+    small: generateDemoSmallNicks(70, twoBack.replace("-", "")),
   };
+
+  state.selectedWinnerMonth = prev;
+}
+
+function getDefaultWinnersMonth() {
+  const prev = getPreviousMonthKey();
+  if (state.winnersByMonth[prev]?.main?.length) return prev;
+  const keys = Object.keys(state.winnersByMonth).sort((a, b) => b.localeCompare(a));
+  return keys[0] || prev;
 }
 
 function getWinnerMonthOptions() {
-  const months = new Set([currentMonthKey(), ...Object.keys(state.winnersByMonth)]);
+  const months = new Set([...Object.keys(state.winnersByMonth), currentMonthKey()]);
   return [...months].sort((a, b) => b.localeCompare(a));
 }
 
@@ -402,7 +497,7 @@ let smallWinnersExpanded = false;
 function renderWinners() {
   const select = document.getElementById("winners-month-select");
   const months = getWinnerMonthOptions();
-  if (!state.selectedWinnerMonth) state.selectedWinnerMonth = currentMonthKey();
+  if (!state.selectedWinnerMonth) state.selectedWinnerMonth = getDefaultWinnersMonth();
 
   select.innerHTML = months
     .map(
@@ -483,10 +578,15 @@ function showPanel(name) {
 
   document.getElementById("page-title").textContent = titles[name] || name;
 
-  if (name === "winners") renderWinners();
-  else if (name === "home") {
+  if (name === "winners") {
+    if (!state.selectedWinnerMonth || !state.winnersByMonth[state.selectedWinnerMonth]?.main?.length) {
+      state.selectedWinnerMonth = getDefaultWinnersMonth();
+    }
+    renderWinners();
+  } else if (name === "home") {
     document.getElementById("today-date").textContent = formatDateSk(new Date());
     updateDrawCountdown();
+    updatePeriodStats();
   } else if (name === "tickets") {
     const now = new Date();
     document.getElementById("today-date").textContent = now.toLocaleDateString("sk-SK", {
@@ -504,6 +604,7 @@ function simulateSync() {
   syncTodayToHistory();
   updateRing();
   renderRecentDays();
+  updatePeriodStats();
 
   if (state.kmToday >= state.goalKm) {
     const today = new Date().toISOString().slice(0, 10);
@@ -535,19 +636,21 @@ function seedDemoHistory() {
 function init() {
   seedDemoHistory();
   seedDemoWinners();
+  loadAdminGoal();
   document.getElementById("today-date").textContent = formatDateSk(new Date());
 
   const saved = localStorage.getItem("chodza-settings");
   if (saved) {
     try {
       const s = JSON.parse(saved);
-      if (s.goalKm) state.goalKm = s.goalKm;
       if (typeof s.dark === "boolean") {
         document.documentElement.dataset.theme = s.dark ? "dark" : "";
         document.getElementById("setting-dark").checked = s.dark;
       }
-      document.getElementById("setting-goal").value = state.goalKm;
       document.getElementById("setting-notify").checked = s.notify !== false;
+      if (s.statsPeriod === "week" || s.statsPeriod === "month") {
+        state.statsPeriod = s.statsPeriod;
+      }
     } catch (_) {}
   }
 
@@ -555,6 +658,7 @@ function init() {
   updateRing();
   renderTickets();
   renderRecentDays();
+  updatePeriodStats();
   startDrawCountdown();
 
   document.getElementById("history-open-btn").addEventListener("click", openHistoryModal);
@@ -572,10 +676,12 @@ function init() {
 
   document.getElementById("sync-btn").addEventListener("click", simulateSync);
 
-  document.getElementById("setting-goal").addEventListener("change", (e) => {
-    state.goalKm = Math.max(1, Number(e.target.value) || GOAL_DEFAULT);
-    updateRing();
-    renderRecentDays();
+  document.getElementById("period-week")?.addEventListener("click", () => {
+    setStatsPeriod("week");
+    persistSettings();
+  });
+  document.getElementById("period-month")?.addEventListener("click", () => {
+    setStatsPeriod("month");
     persistSettings();
   });
 
@@ -595,9 +701,9 @@ function persistSettings() {
   localStorage.setItem(
     "chodza-settings",
     JSON.stringify({
-      goalKm: state.goalKm,
       dark: document.getElementById("setting-dark").checked,
       notify: document.getElementById("setting-notify").checked,
+      statsPeriod: state.statsPeriod,
     })
   );
 }

@@ -1,13 +1,13 @@
 :root {
-  --bg: #f5f3ff;
+  --bg: #f0f5ef;
   --surface: #ffffff;
-  --text: #312e81;
-  --text-muted: #a5b4fc;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --ring-track: #e0e7ff;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --text: #1e3a1c;
+  --text-muted: #7a9e78;
+  --accent: #558352;
+  --accent-light: #6b9e68;
+  --ring-track: #dce8dc;
+  --success: #3d7a3a;
+  --warning: #c17a2a;
   --radius: 16px;
   --nav-h: 72px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -15,11 +15,11 @@
 }
 
 [data-theme="dark"] {
-  --bg: #1e1b4b;
-  --surface: #312e81;
-  --text: #e0e7ff;
-  --text-muted: #a5b4fc;
-  --ring-track: #4338ca;
+  --bg: #1a2e19;
+  --surface: #2a4428;
+  --text: #e8f2e7;
+  --text-muted: #9bb899;
+  --ring-track: #3d5c3b;
 }
 
 *,
@@ -79,7 +79,7 @@ body {
   border-radius: var(--radius);
   padding: 1.5rem 1rem 1.25rem;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 8px 24px rgba(85, 131, 82, 0.12);
 }
 
 .ring {
@@ -156,7 +156,7 @@ body {
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
   text-align: center;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 6px 20px rgba(85, 131, 82, 0.25);
 }
 
 .draw-countdown__label {
@@ -209,11 +209,50 @@ body {
   letter-spacing: 0;
 }
 
+.period-toggle {
+  display: flex;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.25rem;
+  margin-top: 1rem;
+  box-shadow: 0 2px 8px rgba(85, 131, 82, 0.1);
+}
+
+.period-toggle__btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.55;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.55rem 0.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.period-toggle__btn--active {
+  background: var(--accent);
+  color: #fff;
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(85, 131, 82, 0.35);
+}
+
 .stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: 0.65rem;
+}
+
+.setting--readonly {
+  cursor: default;
+}
+
+.setting__value {
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .stat {
@@ -221,7 +260,7 @@ body {
   border-radius: var(--radius);
   padding: 1rem;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 12px rgba(85, 131, 82, 0.1);
 }
 
 .stat__label {
@@ -298,7 +337,7 @@ body {
   background: var(--surface);
   border-radius: 12px;
   padding: 0.85rem 1rem;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 8px rgba(85, 131, 82, 0.08);
 }
 
 .day-row__left {
@@ -360,7 +399,7 @@ body {
 .history-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(30, 27, 75, 0.45);
+  background: rgba(30, 58, 28, 0.45);
 }
 
 .history-modal__sheet {
@@ -459,7 +498,7 @@ body {
   background: var(--surface);
   border-radius: 12px;
   padding: 0.85rem 1rem;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 8px rgba(85, 131, 82, 0.08);
 }
 
 .ticket-list__item--won {
@@ -486,7 +525,7 @@ body {
   border-radius: var(--radius);
   padding: 1.25rem;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 16px rgba(85, 131, 82, 0.1);
 }
 
 .avatar {
@@ -541,7 +580,7 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 4px 12px rgba(85, 131, 82, 0.08);
 }
 
 .settings-list li + li {
@@ -649,7 +688,7 @@ body {
   font-size: 1rem;
   font-weight: 600;
   font-family: inherit;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 8px rgba(85, 131, 82, 0.08);
   cursor: pointer;
 }
 
@@ -675,7 +714,7 @@ body {
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 16px rgba(85, 131, 82, 0.1);
 }
 
 .prize-pool__title {
@@ -797,7 +836,7 @@ body {
   background: var(--surface);
   border-radius: 12px;
   padding: 0.9rem 1rem;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 8px rgba(85, 131, 82, 0.08);
 }
 
 .winner-row--top {

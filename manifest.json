@@ -4,12 +4,12 @@
   "description": "Denná chôdza, mesačný kôš, profil",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f3ff",
-  "theme_color": "#6366f1",
+  "background_color": "#f0f5ef",
+  "theme_color": "#558352",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%236366f1' width='192' height='192' rx='40'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='white' font-family='sans-serif'%3E◎%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%23558352' width='192' height='192' rx='40'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='white' font-family='sans-serif'%3E◎%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"

@@ -4,7 +4,14 @@
  */
 const ADMIN_GOAL_KM = 10;
 const MAX_POINTS_PER_DAY = 3;
-const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
+let trackPathLength = 0;
+
+function getTrackPathLength() {
+  const el = document.getElementById("ring-progress");
+  if (!el) return 500;
+  if (!trackPathLength) trackPathLength = el.getTotalLength();
+  return trackPathLength;
+}
 
 /** Rozdelenie výhier za mesiac (70 % tržieb) – súčet = 100 % */
 const PRIZE_CONFIG = {
@@ -222,9 +229,11 @@ function updateRing() {
   const pointsToday = getPointsForKm(km);
   const maxKm = step * MAX_POINTS_PER_DAY;
   const pct = maxKm > 0 ? Math.min(km / maxKm, 1) : 0;
-  const offset = RING_CIRCUMFERENCE * (1 - pct);
+  const len = getTrackPathLength();
+  const offset = len * (1 - pct);
 
   const ring = document.getElementById("ring-progress");
+  ring.style.strokeDasharray = `${len}`;
   ring.style.strokeDashoffset = String(offset);
   ring.classList.toggle("ring__progress--done", pointsToday >= MAX_POINTS_PER_DAY);
 

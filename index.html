@@ -20,15 +20,33 @@
         <!-- Domov -->
         <section class="panel panel--active" id="panel-home" aria-labelledby="nav-home">
           <div class="ring-card">
-            <div class="ring" role="img" aria-label="Prejdené kilometre dnes">
-              <svg class="ring__svg" viewBox="0 0 120 120">
-                <circle class="ring__track" cx="60" cy="60" r="52" />
-                <circle class="ring__progress" id="ring-progress" cx="60" cy="60" r="52" />
+            <div class="ring ring--stadium" role="img" aria-label="Prejdené kilometre dnes">
+              <svg class="ring__svg" viewBox="0 0 240 118" aria-hidden="true">
+                <path
+                  class="ring__field"
+                  d="M 120,26 L 172,26 A 36,38 0 0 1 172,92 L 68,92 A 36,38 0 0 1 68,26 Z"
+                />
+                <path
+                  class="ring__lane ring__lane--inner"
+                  d="M 120,30 L 168,30 A 32,34 0 0 1 168,88 L 72,88 A 32,34 0 0 1 72,30 Z"
+                />
+                <path
+                  class="ring__track"
+                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
+                />
+                <path
+                  class="ring__progress"
+                  id="ring-progress"
+                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
+                />
               </svg>
               <div class="ring__center">
                 <span class="ring__value" id="km-today">0.0</span>
                 <span class="ring__unit">km</span>
-                <span class="ring__goal"><strong id="km-goal">10</strong> km = 1 bod (max 3/deň)</span>
+                <p class="ring__goal">
+                  <strong id="km-goal">10</strong> km = 1 bod<br />
+                  <span class="ring__goal-sub">max 3 body / deň</span>
+                </p>
               </div>
             </div>
             <p class="ring-card__status" id="goal-status">Ešte <span id="km-remaining">12.0</span> km do cieľa</p>

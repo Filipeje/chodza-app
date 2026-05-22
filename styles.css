@@ -517,6 +517,11 @@ body {
   color: var(--accent);
 }
 
+.ticket-list__tag--pts {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .profile-card {
   display: flex;
   align-items: center;

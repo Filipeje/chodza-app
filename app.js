@@ -2,7 +2,8 @@
  * Denný cieľ nastavuje administrátor (neskôr admin panel / Supabase).
  * Dočasne v konzole prehliadača: localStorage.setItem("chodza-admin-goal", "10")
  */
-const ADMIN_GOAL_KM = 12;
+const ADMIN_GOAL_KM = 10;
+const MAX_POINTS_PER_DAY = 3;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 52;
 
 /** Rozdelenie výhier za mesiac (70 % tržieb) – súčet = 100 % */
@@ -20,12 +21,7 @@ const state = {
   kmToday: 7.4,
   statsPeriod: "week",
   history: [],
-  tickets: [
-    { date: "2026-05-05", earned: true },
-    { date: "2026-05-12", earned: true },
-    { date: "2026-05-14", earned: true },
-    { date: "2026-05-18", earned: true },
-  ],
+  dailyPoints: [],
   premium: false,
   winnersByMonth: {},
   selectedWinnerMonth: null,
@@ -163,18 +159,30 @@ function dayLabel(iso) {
   return d.toLocaleDateString("sk-SK", { weekday: "long" });
 }
 
+function getPointsForKm(km) {
+  const step = state.goalKm;
+  if (!step || step <= 0) return 0;
+  return Math.min(MAX_POINTS_PER_DAY, Math.floor(km / step));
+}
+
+function formatPointsShort(n) {
+  if (n === 1) return "1 bod";
+  if (n >= 2 && n <= 4) return `${n} body`;
+  if (n === 0) return "0 bodov";
+  return `${n} bodov`;
+}
+
 function renderDayRow(entry) {
-  const done = entry.km >= state.goalKm;
-  const badge = done
-    ? `<span class="day-row__badge">Splnené</span>`
-    : "";
+  const pts = getPointsForKm(entry.km);
+  const badge =
+    pts > 0 ? `<span class="day-row__badge">${formatPointsShort(pts)}</span>` : "";
   return `
     <li class="day-row">
       <div class="day-row__left">
         <span class="day-row__label">${dayLabel(entry.date)}${badge}</span>
         <span class="day-row__sub">${formatShortSk(entry.date)}</span>
       </div>
-      <span class="day-row__km${done ? " day-row__km--done" : ""}">${entry.km.toFixed(1)} km</span>
+      <span class="day-row__km${pts > 0 ? " day-row__km--done" : ""}">${entry.km.toFixed(1)} km</span>
     </li>`;
 }
 
@@ -209,30 +217,34 @@ function closeHistoryModal() {
 }
 
 function updateRing() {
-  const goal = state.goalKm;
+  const step = state.goalKm;
   const km = state.kmToday;
-  const pct = Math.min(km / goal, 1);
+  const pointsToday = getPointsForKm(km);
+  const maxKm = step * MAX_POINTS_PER_DAY;
+  const pct = maxKm > 0 ? Math.min(km / maxKm, 1) : 0;
   const offset = RING_CIRCUMFERENCE * (1 - pct);
 
   const ring = document.getElementById("ring-progress");
   ring.style.strokeDashoffset = String(offset);
-
-  const done = km >= goal;
-  ring.classList.toggle("ring__progress--done", done);
+  ring.classList.toggle("ring__progress--done", pointsToday >= MAX_POINTS_PER_DAY);
 
   document.getElementById("km-today").textContent = km.toFixed(1);
-  document.getElementById("km-goal").textContent = String(goal);
+  const goalEl = document.getElementById("km-goal");
+  if (goalEl) goalEl.textContent = String(step);
 
   const status = document.getElementById("goal-status");
-  const remaining = document.getElementById("km-remaining");
 
-  if (done) {
-    status.textContent = "Cieľ splnený – máš bod!";
+  if (pointsToday >= MAX_POINTS_PER_DAY) {
+    status.textContent = `Maximum ${MAX_POINTS_PER_DAY} body za dnes!`;
+    status.style.color = "var(--success)";
+  } else if (pointsToday > 0) {
+    const nextAt = (pointsToday + 1) * step;
+    const left = Math.max(0, nextAt - km).toFixed(1);
+    status.innerHTML = `Dnes <strong>${formatPointsShort(pointsToday)}</strong> · ešte <span id="km-remaining">${left}</span> km do ďalšieho`;
     status.style.color = "var(--success)";
   } else {
-    const left = (goal - km).toFixed(1);
-    remaining.textContent = left;
-    status.innerHTML = `Ešte <span id="km-remaining">${left}</span> km do cieľa`;
+    const left = Math.max(0, step - km).toFixed(1);
+    status.innerHTML = `Ešte <span id="km-remaining">${left}</span> km do 1. bodu (${step} km = 1 bod)`;
     status.style.color = "";
   }
 }
@@ -243,23 +255,65 @@ function pluralBody(n) {
   return "bodov tento mesiac";
 }
 
+function getMonthDailyPoints() {
+  const month = currentMonthKey();
+  return state.dailyPoints
+    .filter((d) => d.date.startsWith(month) && d.points > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function upsertDailyPoint(date, km) {
+  const points = getPointsForKm(km);
+  const idx = state.dailyPoints.findIndex((d) => d.date === date);
+  if (points === 0) {
+    if (idx >= 0) state.dailyPoints.splice(idx, 1);
+    return;
+  }
+  const row = { date, points, km };
+  if (idx >= 0) state.dailyPoints[idx] = row;
+  else state.dailyPoints.push(row);
+}
+
+function rebuildDailyPointsFromHistory() {
+  const month = currentMonthKey();
+  const rows = state.history
+    .filter((h) => h.date.startsWith(month))
+    .map((h) => ({
+      date: h.date,
+      points: getPointsForKm(h.km),
+      km: h.km,
+    }))
+    .filter((r) => r.points > 0);
+
+  const otherMonths = state.dailyPoints.filter((d) => !d.date.startsWith(month));
+  state.dailyPoints = [...otherMonths, ...rows].sort((a, b) => b.date.localeCompare(a.date));
+}
+
 function renderTickets() {
   const now = new Date();
-  const count = state.tickets.length;
+  const monthRows = getMonthDailyPoints();
+  const totalPoints = monthRows.reduce((s, d) => s + d.points, 0);
+
   document.getElementById("tickets-month").textContent = now.toLocaleDateString(
     "sk-SK",
     { month: "long", year: "numeric" }
   );
-  document.getElementById("tickets-count").textContent = String(count);
-  document.getElementById("tickets-count-label").textContent = pluralBody(count);
+  document.getElementById("tickets-count").textContent = String(totalPoints);
+  document.getElementById("tickets-count-label").textContent = pluralBody(totalPoints);
 
   const list = document.getElementById("ticket-list");
-  list.innerHTML = state.tickets
+  if (monthRows.length === 0) {
+    list.innerHTML =
+      '<li class="ticket-list__item"><span class="day-row__sub">Zatiaľ žiadne body tento mesiac.</span></li>';
+    return;
+  }
+
+  list.innerHTML = monthRows
     .map(
       (t) => `
     <li class="ticket-list__item">
       <span class="ticket-list__date">${formatShortSk(t.date)}</span>
-      <span class="ticket-list__tag">Bod #${state.tickets.indexOf(t) + 1}</span>
+      <span class="ticket-list__tag ticket-list__tag--pts">${formatPointsShort(t.points)} · ${t.km.toFixed(1)} km</span>
     </li>`
     )
     .join("");
@@ -286,7 +340,9 @@ function loadAdminGoal() {
     state.goalKm = ADMIN_GOAL_KM;
   }
   const el = document.getElementById("display-goal");
-  if (el) el.textContent = `${state.goalKm} km`;
+  if (el) el.textContent = `${state.goalKm} km = 1 bod`;
+  const hint = document.getElementById("hint-km-per-point");
+  if (hint) hint.textContent = String(state.goalKm);
 }
 
 function getPeriodHistory(period) {
@@ -306,7 +362,7 @@ function updatePeriodStats() {
   const period = state.statsPeriod;
   const entries = getPeriodHistory(period);
   const totalKm = entries.reduce((s, h) => s + h.km, 0);
-  const done = entries.filter((h) => h.km >= state.goalKm).length;
+  const done = entries.filter((h) => getPointsForKm(h.km) > 0).length;
 
   const kmLabel = document.getElementById("stat-km-label");
   const kmVal = document.getElementById("km-period");
@@ -606,14 +662,9 @@ function simulateSync() {
   renderRecentDays();
   updatePeriodStats();
 
-  if (state.kmToday >= state.goalKm) {
-    const today = new Date().toISOString().slice(0, 10);
-    const hasToday = state.tickets.some((t) => t.date === today);
-    if (!hasToday) {
-      state.tickets.push({ date: today, earned: true });
-      renderTickets();
-    }
-  }
+  const today = todayIso();
+  upsertDailyPoint(today, state.kmToday);
+  renderTickets();
 
   const btn = document.getElementById("sync-btn");
   btn.textContent = "Synchronizované ✓";
@@ -637,6 +688,7 @@ function init() {
   seedDemoHistory();
   seedDemoWinners();
   loadAdminGoal();
+  rebuildDailyPointsFromHistory();
   document.getElementById("today-date").textContent = formatDateSk(new Date());
 
   const saved = localStorage.getItem("chodza-settings");

@@ -114,6 +114,7 @@ function seedMockUsers() {
     const dailyWalks = buildDemoWalks(i, goal);
     const mesacneBody = dailyWalks.reduce((s, d) => s + d.body, 0);
     const celkoveBody = 40 + mesacneBody + i * 7;
+    const streakSamples = [0, 0, 2, 1, 0, 3, 0, 1, 0, 2, 0, 0, 1, 0, 0];
     return {
       id,
       meno,
@@ -121,6 +122,7 @@ function seedMockUsers() {
       status_predplatneho: status,
       mesacneBody,
       celkoveBody,
+      streak_of_loss: streakSamples[i % streakSamples.length],
       winHistory: winSamples[i % winSamples.length],
       dailyWalks,
       created_at: "2026-01-15T10:00:00Z",
@@ -198,11 +200,16 @@ const MockStore = {
     const participants = users.map((u) => ({
       userId: u.id,
       nick: u.meno,
-      tickets: u.mesacneBody,
-      winHistory: u.winHistory,
+      monthly_points: u.mesacneBody,
+      streak_of_loss: u.streak_of_loss ?? 0,
     }));
 
     const draw = window.ChodzaDraw.runMonthlyDraw(participants, monthKey, poolEur);
+
+    for (const u of users) {
+      const streakUpd = draw.streakUpdates.find((s) => s.userId === u.id);
+      if (streakUpd) u.streak_of_loss = streakUpd.streak_of_loss;
+    }
 
     for (const w of [...draw.main, ...draw.small]) {
       const user = users.find((u) => u.id === w.userId);
@@ -516,14 +523,18 @@ function renderDrawResults(draw, poolEur) {
   block.hidden = false;
   document.getElementById("draw-results-meta").textContent =
     `${formatMonthLabel(draw.monthKey)} · fond ${formatEur(poolEur)} · ` +
-    `${draw.participantCount} hráčov v koši · ${draw.poolTicketCount} vážených vstupov` +
+    `${draw.participantCount} hráčov · ${draw.basketSize ?? draw.poolTicketCount} lístkov v osudí (pity 1.5^n)` +
     (draw.warning ? ` · ${draw.warning}` : "");
+
+  const fmtVirtual = (w) =>
+    `virtual ${w.virtual_points?.toFixed?.(1) ?? w.virtual_points} → ${w.basketTickets} lístkov`;
 
   document.getElementById("draw-main-list").innerHTML = draw.main
     .map(
       (w) =>
         `<li><strong>@${escapeHtml(w.nick)}</strong> — ${w.place}. miesto ` +
-        `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span></li>`
+        `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span> ` +
+        `<span class="admin-hint">(${fmtVirtual(w)}, streak ${w.streak_of_loss})</span></li>`
     )
     .join("");
 
@@ -531,7 +542,8 @@ function renderDrawResults(draw, poolEur) {
     .map(
       (w, i) =>
         `<li>${i + 1}. @${escapeHtml(w.nick)} ` +
-        `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span></li>`
+        `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span> ` +
+        `<span class="admin-hint">(${fmtVirtual(w)})</span></li>`
     )
     .join("");
 }

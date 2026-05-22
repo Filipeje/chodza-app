@@ -29,10 +29,12 @@ function setRingTier(id, pct, len) {
 const PRIZE_CONFIG = {
   priceMonthly: 3.99,
   ownerShare: 0.45,
-  prizePoolShare: 0.55,
   mainCount: 3,
-  smallCount: 70,
-  poolSplit: { first: 0.25, second: 0.15, third: 0.1, small: 0.5 },
+  smallCount: 97,
+  /** Podiely z tržby: 45 % prevádzka, 15+10+6+24 % výhry */
+  revenueSplit: { first: 0.15, second: 0.1, third: 0.06, small: 0.24 },
+  /** Manuálny kôš – 100 % na výhry podľa 15/55, 10/55, 6/55, 24/55 */
+  manualPoolSplit: { first: 15 / 55, second: 10 / 55, third: 6 / 55, small: 24 / 55 },
 };
 
 const state = {
@@ -643,32 +645,36 @@ function formatEur(amount) {
 
 function calculatePrizeBreakdown(payingUsers, priceMonthly = PRIZE_CONFIG.priceMonthly) {
   const revenue = payingUsers * priceMonthly;
-  const ownerAmount = revenue * PRIZE_CONFIG.ownerShare;
-  const poolAmount = revenue * PRIZE_CONFIG.prizePoolShare;
-  return prizeAmountsFromPool(poolAmount, { payingUsers, priceMonthly, revenue, ownerAmount });
-}
-
-/** Admin nastaví mesačný kôš priamo v € */
-function calculatePrizeFromManualPool(poolEur) {
-  return prizeAmountsFromPool(Number(poolEur) || 0, { manualPoolEur: poolEur });
-}
-
-function prizeAmountsFromPool(poolAmount, extra = {}) {
-  const { first, second, third, small } = PRIZE_CONFIG.poolSplit;
-  const firstPrize = poolAmount * first;
-  const secondPrize = poolAmount * second;
-  const thirdPrize = poolAmount * third;
-  const smallTotal = poolAmount * small;
-  const smallPrizeEach = smallTotal / PRIZE_CONFIG.smallCount;
-
+  const { revenueSplit } = PRIZE_CONFIG;
+  const smallTotal = revenue * revenueSplit.small;
   return {
-    poolAmount,
-    firstPrize,
-    secondPrize,
-    thirdPrize,
-    smallPrizeEach,
+    payingUsers,
+    priceMonthly,
+    revenue,
+    ownerAmount: revenue * PRIZE_CONFIG.ownerShare,
+    poolAmount: revenue * (1 - PRIZE_CONFIG.ownerShare),
+    firstPrize: revenue * revenueSplit.first,
+    secondPrize: revenue * revenueSplit.second,
+    thirdPrize: revenue * revenueSplit.third,
+    smallPrizeEach: smallTotal / PRIZE_CONFIG.smallCount,
     totalWinners: PRIZE_CONFIG.mainCount + PRIZE_CONFIG.smallCount,
-    ...extra,
+  };
+}
+
+/** Admin nastaví mesačný kôš priamo v € (100 % sumy na výhry) */
+function calculatePrizeFromManualPool(poolEur) {
+  const pool = Number(poolEur) || 0;
+  const { manualPoolSplit, smallCount } = PRIZE_CONFIG;
+  const smallTotal = pool * manualPoolSplit.small;
+  return {
+    manualPoolEur: pool,
+    poolAmount: pool,
+    ownerAmount: 0,
+    firstPrize: pool * manualPoolSplit.first,
+    secondPrize: pool * manualPoolSplit.second,
+    thirdPrize: pool * manualPoolSplit.third,
+    smallPrizeEach: smallTotal / smallCount,
+    totalWinners: PRIZE_CONFIG.mainCount + smallCount,
   };
 }
 
@@ -719,7 +725,7 @@ function seedDemoWinners() {
       { place: 2, nick: "Krokomerista" },
       { place: 3, nick: "SynkoWalk" },
     ],
-    small: generateDemoSmallNicks(70, prevSeed),
+    small: generateDemoSmallNicks(97, prevSeed),
   };
 
   const twoBack = (() => {
@@ -737,7 +743,7 @@ function seedDemoWinners() {
       { place: 2, nick: "12km_den" },
       { place: 3, nick: "ZochodMa" },
     ],
-    small: generateDemoSmallNicks(70, twoBack.replace("-", "")),
+    small: generateDemoSmallNicks(97, twoBack.replace("-", "")),
   };
 
   state.selectedWinnerMonth = prev;
@@ -782,7 +788,7 @@ function renderWinners() {
     container.innerHTML = `
       <div class="winners-status winners-status--pending">
         ${isCurrent
-          ? "Žrebovanie pre tento mesiac ešte neprebehlo. Po skončení mesiaca sa vyžrebujú 3 hlavné a 70 menších cien podľa počtu platiacich."
+          ? "Žrebovanie pre tento mesiac ešte neprebehlo. Po skončení mesiaca sa vyžrebujú 3 hlavné a 97 menších cien."
           : "Pre tento mesiac zatiaľ nie sú zverejnení výhercovia."}
       </div>`;
     hint.hidden = false;

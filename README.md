@@ -8,7 +8,7 @@ Postup podľa vášho plánu:
 | 2. Zdravie / GPS | ⏳ | Tlačidlo „Aktualizovať km“ je demo; HealthKit / Health Connect pripojíme ako native alebo Capacitor |
 | 3. Supabase | 📄 | `supabase/schema.sql` |
 | 4. Stripe | ⏳ | Placeholder v Profile |
-| 5. Žrebovanie | 📄 | `scripts/monthly-draw.js`, `scripts/draw-core.js` |
+| 5. Žrebovanie | 📄 | `utils/drawBasket.ts`, `scripts/draw-core.js`, `scripts/monthly-draw.cjs` |
 | Admin panel | ✅ | `admin.html` – mesačný kôš, používatelia, uzatvorenie mesiaca (mock → Supabase) |
 
 ## Admin panel
@@ -17,7 +17,9 @@ Otvorte [`admin.html`](admin.html) (odporúčané cez lokálny server kvôli `lo
 
 - **Mesačné nastavenia** – fond výhier v €, km na 1 bod, max bodov/deň
 - **Používatelia** – tabuľka, vyhľadávanie, detail s dennou aktivitou
-- **Uzatvorenie mesiaca** – žrebovanie 3 + 70, vynulovanie mesačných bodov, sync do aplikácie (`chodza-winners-by-month`)
+- **Uzatvorenie mesiaca** – žrebovanie 3 + 97, pity timer (1.5^streak), sync do aplikácie
+
+Simulácia pity timera: `npm run draw:sim` (vyžaduje Node + `npx tsx`) alebo `node scripts/monthly-draw.cjs --pool=2500`
 
 ## Spustenie prototypu
 

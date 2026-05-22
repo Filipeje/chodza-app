@@ -1,0 +1,8 @@
+{
+  "name": "chodza-app",
+  "private": true,
+  "scripts": {
+    "draw:sim": "npx tsx utils/drawBasket.ts",
+    "draw:month": "node scripts/monthly-draw.cjs"
+  }
+}

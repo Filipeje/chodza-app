@@ -66,4 +66,7 @@ create index win_history_user_idx on public.win_history (id_user, mesiac desc);
 -- Celkové body (level) – mimo mesačného koša
 alter table public.users add column if not exists celkove_body int not null default 0;
 
+-- Pity timer: koľko mesiacov po sebe bez výhry (0 ak minulý mesiac vyhral)
+alter table public.users add column if not exists streak_of_loss int not null default 0 check (streak_of_loss >= 0);
+
 -- Mesačné body v tickets už reprezentujú koš; po uzatvorení mesiaca reset na 0

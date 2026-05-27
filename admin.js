@@ -5,6 +5,7 @@
 
 const STORAGE_KEY = "chodza-admin-data-v1";
 const WINNERS_KEY = "chodza-winners-by-month";
+const SEEN_REGISTRATIONS_KEY = "chodza-admin-seen-registrations-v1";
 const SUBSCRIPTION_PRICE_EUR =
   typeof ChodzaI18n !== "undefined" ? ChodzaI18n.SUBSCRIPTION_PRICE : 4.99;
 
@@ -20,98 +21,120 @@ function applyAdminLanguage() {
   document.querySelectorAll("[data-i18n-dynamic='prize-hint']").forEach((el) => {
     el.textContent = ta("admin.prizeHint", { price });
   });
-  const poolInput = document.getElementById("prize-pool-eur");
-  if (poolInput) poolInput.placeholder = ta("admin.prizePlaceholder");
   if (allUsers.length) {
-    ChodzaAdminAPI.getMonthlySettings(monthKey).then((s) => renderRevenuePreview(allUsers, s));
+    ChodzaAdminAPI.getMonthlySettings(monthKey).then((s) => {
+      renderRevenuePreview(allUsers, s);
+      renderAdminSummary(s);
+    });
   }
+}
+
+function userPlan(u) {
+  if (typeof ChodzaPlans !== "undefined") {
+    return ChodzaPlans.normalizePlan(
+      u.subscriptionPlan || (u.status_predplatneho === "premium" ? "basic" : u.status_predplatneho)
+    );
+  }
+  if (u.subscriptionPlan === "plus") return "plus";
+  if (u.subscriptionPlan === "basic" || u.status_predplatneho === "premium") return "basic";
+  return "free";
 }
 
 function countPayingSubscribers(users) {
+  if (typeof ChodzaPlans !== "undefined") {
+    return ChodzaPlans.countPayingUsers(users).total;
+  }
   return users.filter((u) => u.status_predplatneho === "premium").length;
 }
 
-/** Manuálny kôš len ak je zadaná kladná suma; inak tržby z predplatiteľov */
-function resolvePrizeSource(settings, users) {
-  const manual = Number(settings.prizePoolEur);
-  const payingUsers = countPayingSubscribers(users);
-  if (Number.isFinite(manual) && manual > 0) {
-    return { mode: "manual", manualPool: manual, payingUsers };
-  }
-  const revenue = payingUsers * SUBSCRIPTION_PRICE_EUR;
-  return { mode: "revenue", manualPool: null, payingUsers, revenue };
+function getSelectedPrizeMode() {
+  const el = document.querySelector('input[name="prizeMode"]:checked');
+  return el?.value === "manual" ? "manual" : "percent";
 }
 
-function getPrizeBreakdown(payingUsers, manualPool) {
+function collectPrizeSettingsFromForm() {
+  const mp = {
+    drawFirst: Number(document.getElementById("mp-draw-first")?.value) || 0,
+    drawSecond: Number(document.getElementById("mp-draw-second")?.value) || 0,
+    drawThird: Number(document.getElementById("mp-draw-third")?.value) || 0,
+    smallEach: Number(document.getElementById("mp-small-each")?.value) || 0,
+    walkerFirst: Number(document.getElementById("mp-walker-first")?.value) || 0,
+    walkerSecond: Number(document.getElementById("mp-walker-second")?.value) || 0,
+    walkerThird: Number(document.getElementById("mp-walker-third")?.value) || 0,
+  };
+  return {
+    prizeMode: getSelectedPrizeMode(),
+    totalFundEur: Number(document.getElementById("total-fund-eur")?.value) || 0,
+    manualPrizes: mp,
+  };
+}
+
+function collectSettingsFromForm() {
+  return {
+    ...collectPrizeSettingsFromForm(),
+    goalType: document.getElementById("goal-type")?.value || "walk_km",
+    goalKmPerPoint: Number(document.getElementById("goal-km")?.value) || 10,
+    maxPointsPerDay: Number(document.getElementById("max-points")?.value) || 3,
+  };
+}
+
+function applyPrizeModeUi() {
+  const mode = getSelectedPrizeMode();
+  const percentPanel = document.getElementById("prize-mode-percent");
+  const manualPanel = document.getElementById("prize-mode-manual");
+  if (percentPanel) percentPanel.hidden = mode !== "percent";
+  if (manualPanel) manualPanel.hidden = mode !== "manual";
+}
+
+function resolvePrizeConfig(settings, users) {
   if (typeof ChodzaDraw === "undefined") return null;
-  if (manualPool != null && manualPool > 0) {
-    return ChodzaDraw.calculatePrizeAmounts({ manualPrizePool: manualPool });
-  }
-  return ChodzaDraw.calculatePrizeAmounts({
-    payingUsers,
-    priceMonthly: SUBSCRIPTION_PRICE_EUR,
-  });
+  return ChodzaDraw.resolvePrizeConfig(settings, users, userPlan);
+}
+
+function formatPayingPlansSummary(users, isEn) {
+  if (typeof ChodzaPlans === "undefined") return null;
+  const { basic, plus } = ChodzaPlans.countPayingUsers(users);
+  if (!basic && !plus) return isEn ? "no paying subscribers" : "žiadni platiaci";
+  const parts = [];
+  if (basic) parts.push(isEn ? `${basic}×4.99 €` : `${basic}×4,99 €`);
+  if (plus) parts.push(isEn ? `${plus}×7.99 €` : `${plus}×7,99 €`);
+  return parts.join(isEn ? " + " : " + ");
 }
 
 function renderRevenuePreview(users, settings) {
   const el = document.getElementById("revenue-preview");
-  const fieldset = document.getElementById("revenue-fieldset");
   if (!el) return;
 
-  const source = resolvePrizeSource(settings, users);
-  const breakdown = getPrizeBreakdown(source.payingUsers, source.manualPool);
-  if (!breakdown) {
+  const p = resolvePrizeConfig(settings, users);
+  if (!p) {
     el.innerHTML = "<p class=\"admin-hint\">Načítava sa…</p>";
     return;
   }
 
-  const price = typeof ChodzaI18n !== "undefined" ? ChodzaI18n.formatPrice() : formatEur(SUBSCRIPTION_PRICE_EUR);
   const isEn = ChodzaI18n?.getLang() === "en";
+  const smallTotal = (p.smallEach || 0) * (p.smallCount || 97);
+  const modeLabel =
+    p.prizeMode === "manual"
+      ? isEn
+        ? "Manual amounts"
+        : "Manuálne sumy"
+      : isEn
+        ? `Auto split from ${formatEur(p.totalFundEur)}`
+        : `Automatické z ${formatEur(p.totalFundEur)}`;
 
-  if (source.mode === "manual") {
-    fieldset?.classList.add("revenue-preview--manual-active");
-    el.innerHTML = isEn
-      ? `<p class="revenue-preview__lead"><strong>Manual pool ${formatEur(source.manualPool)}</strong> – subscription revenue is not used for the draw.</p>
-         <p class="admin-hint">Active subscribers: ${source.payingUsers} × ${price} = ${formatEur(source.payingUsers * SUBSCRIPTION_PRICE_EUR)} (info only)</p>`
-      : `<p class="revenue-preview__lead"><strong>Manuálny kôš ${formatEur(source.manualPool)}</strong> – tržby z predplatiteľov sa pri žrebovaní nepoužijú.</p>
-         <p class="admin-hint">Aktívnych predplatiteľov: ${source.payingUsers} × ${price} = ${formatEur(source.payingUsers * SUBSCRIPTION_PRICE_EUR)} (informačne)</p>`;
-    return;
-  }
-
-  fieldset?.classList.remove("revenue-preview--manual-active");
-  const rev = breakdown.revenue ?? source.revenue ?? 0;
-  const smallSlots = breakdown.smallCount ?? 97;
-  const smallTotal = (breakdown.smallPrizeEach ?? 0) * smallSlots;
-
-  if (isEn) {
-    el.innerHTML = `
-    <p class="revenue-preview__lead"><strong>${source.payingUsers}</strong> paying × <strong>${price}</strong>
-      = <strong class="revenue-preview__total">${formatEur(rev)}</strong> monthly revenue</p>
+  el.innerHTML = `
+    <p class="revenue-preview__lead"><strong>${modeLabel}</strong></p>
     <div class="revenue-preview__table">
-      <div class="revenue-preview__row revenue-preview__row--owner"><span>For you (45 %)</span><strong>${formatEur(breakdown.ownerAmount)}</strong></div>
-      <div class="revenue-preview__row"><span>1st prize (15 %)</span><strong>${formatEur(breakdown.firstPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>2nd prize (10 %)</span><strong>${formatEur(breakdown.secondPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>3rd prize (6 %)</span><strong>${formatEur(breakdown.thirdPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>97× smaller prize (24 % total)</span><strong>${formatEur(breakdown.smallPrizeEach)} each</strong></div>
-      <div class="revenue-preview__row revenue-preview__row--sub"><span>Total 97 smaller prizes</span><span>${formatEur(smallTotal)}</span></div>
-      <div class="revenue-preview__row revenue-preview__row--sum"><span>Prizes total (55 %)</span><strong>${formatEur(rev - breakdown.ownerAmount)}</strong></div>
-    </div>
-    <p class="admin-hint">Used when closing the month if the prize fund field is empty.</p>`;
-  } else {
-    el.innerHTML = `
-    <p class="revenue-preview__lead"><strong>${source.payingUsers}</strong> platiacich × <strong>${price}</strong>
-      = <strong class="revenue-preview__total">${formatEur(rev)}</strong> tržby za mesiac</p>
-    <div class="revenue-preview__table">
-      <div class="revenue-preview__row revenue-preview__row--owner"><span>Pre vás (45 %)</span><strong>${formatEur(breakdown.ownerAmount)}</strong></div>
-      <div class="revenue-preview__row"><span>1. cena (15 %)</span><strong>${formatEur(breakdown.firstPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>2. cena (10 %)</span><strong>${formatEur(breakdown.secondPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>3. cena (6 %)</span><strong>${formatEur(breakdown.thirdPrize)}</strong></div>
-      <div class="revenue-preview__row"><span>97× menšia cena (24 % celkom)</span><strong>${formatEur(breakdown.smallPrizeEach)} / osoba</strong></div>
-      <div class="revenue-preview__row revenue-preview__row--sub"><span>Súčet 97 menších cien</span><span>${formatEur(smallTotal)}</span></div>
-      <div class="revenue-preview__row revenue-preview__row--sum"><span>Výhry spolu (55 %)</span><strong>${formatEur(rev - breakdown.ownerAmount)}</strong></div>
-    </div>
-    <p class="admin-hint">Toto sa použije pri uzatvorení mesiaca, ak pole výšky výhry necháš prázdne.</p>`;
-  }
+      <div class="revenue-preview__row revenue-preview__row--owner"><span>${isEn ? "For you (45 %)" : "Pre vás (45 %)"}</span><strong>${formatEur(p.ownerAmount)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Draw 1st (15 %)" : "Osudie 1. (15 %)"}</span><strong>${formatEur(p.drawFirst)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Draw 2nd (10 %)" : "Osudie 2. (10 %)"}</span><strong>${formatEur(p.drawSecond)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Draw 3rd (6 %)" : "Osudie 3. (6 %)"}</span><strong>${formatEur(p.drawThird)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "97× draw (20 % total)" : "97× osudie (20 % celkom)"}</span><strong>${formatEur(p.smallEach)} / os.</strong></div>
+      <div class="revenue-preview__row revenue-preview__row--sub"><span>${isEn ? "97× total" : "Súčet 97×"}</span><span>${formatEur(smallTotal)}</span></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Walker 1 (50 % of 4 %)" : "Makač 1 (50 % z 4 %)"}</span><strong>${formatEur(p.walkerFirst)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Walker 2 (30 %)" : "Makač 2 (30 %)"}</span><strong>${formatEur(p.walkerSecond)}</strong></div>
+      <div class="revenue-preview__row"><span>${isEn ? "Walker 3 (20 %)" : "Makač 3 (20 %)"}</span><strong>${formatEur(p.walkerThird)}</strong></div>
+    </div>`;
 }
 
 /** @type {boolean} */
@@ -139,8 +162,8 @@ const ChodzaAdminAPI = {
     throw new Error("Supabase nie je pripojené");
   },
 
-  async closeMonth(monthKey, poolEur) {
-    if (this.useMock) return MockStore.closeMonth(monthKey, poolEur);
+  async closeMonth(monthKey, settings) {
+    if (this.useMock) return MockStore.closeMonth(monthKey, settings);
     throw new Error("Supabase nie je pripojené");
   },
 };
@@ -168,8 +191,17 @@ function shortId(id) {
   return id.length > 12 ? id.slice(0, 8) + "…" : id;
 }
 
-function subscriptionLabel(status) {
-  return status === "premium" ? "Aktívne" : "Neaktívne";
+function subscriptionLabel(userOrStatus) {
+  if (userOrStatus && typeof userOrStatus === "object") {
+    const plan = userPlan(userOrStatus);
+    if (plan === "plus") return "Plus 7,99 €";
+    if (plan === "basic") return "Chôdza 4,99 €";
+    return "Free";
+  }
+  if (userOrStatus === "plus") return "Plus 7,99 €";
+  if (userOrStatus === "premium" || userOrStatus === "basic") return "Chôdza 4,99 €";
+  if (userOrStatus === "cancelled") return "Zrušené";
+  return "Free";
 }
 
 function formatWinHistory(history) {
@@ -184,17 +216,318 @@ function formatWinHistory(history) {
   return `Už vyhral ${n}× (${last.place}. menšia cena)`;
 }
 
-function pointsFromKm(km, goalKm, maxPerDay) {
+function pointsFromKm(km, goalKm, maxPerDay, planId) {
+  if (typeof ChodzaPlans !== "undefined") {
+    return ChodzaPlans.computePointsForKm(km, goalKm, maxPerDay, planId || "free");
+  }
   return Math.min(maxPerDay, Math.floor(km / goalKm));
+}
+
+function registrationUserId(email) {
+  const norm = String(email || "")
+    .trim()
+    .toLowerCase();
+  return `reg-${norm.replace(/[^a-z0-9]/g, "").slice(0, 20)}`;
+}
+
+function getSeenRegistrationEmails() {
+  try {
+    const raw = localStorage.getItem(SEEN_REGISTRATIONS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list.map((e) => String(e).toLowerCase()) : []);
+  } catch (_) {
+    return new Set();
+  }
+}
+
+function markAllRegistrationsSeen(emails) {
+  try {
+    const seen = getSeenRegistrationEmails();
+    for (const e of emails) seen.add(String(e).toLowerCase());
+    localStorage.setItem(SEEN_REGISTRATIONS_KEY, JSON.stringify([...seen]));
+  } catch (err) {
+    console.error("markAllRegistrationsSeen", err);
+  }
+}
+
+function isRegisteredUser(user) {
+  return user?.source === "registration" || String(user?.id || "").startsWith("reg-");
+}
+
+function isUnseenRegistration(user) {
+  if (!isRegisteredUser(user) || !user.email) return false;
+  return !getSeenRegistrationEmails().has(user.email.toLowerCase());
+}
+
+function registrationSortTime(user) {
+  const iso = user.registeredAt || user.created_at;
+  const t = iso ? new Date(iso).getTime() : 0;
+  return Number.isFinite(t) ? t : 0;
+}
+
+/** Registrovaní navrch, najnovší prvý; demo účty pod nimi */
+function sortUsersForAdmin(users) {
+  return [...users].sort((a, b) => {
+    const aReg = isRegisteredUser(a);
+    const bReg = isRegisteredUser(b);
+    if (aReg && !bReg) return -1;
+    if (!aReg && bReg) return 1;
+    if (aReg && bReg) return registrationSortTime(b) - registrationSortTime(a);
+    return String(a.meno || "").localeCompare(String(b.meno || ""), "sk");
+  });
+}
+
+function authUserToAdminRecord(auth) {
+  const fullName = `${auth.firstName || ""} ${auth.lastName || ""}`.trim();
+  const displayNick = auth.username || fullName || auth.email;
+  return {
+    id: registrationUserId(auth.email),
+    meno: displayNick,
+    username: auth.username || "",
+    firstName: auth.firstName || "",
+    lastName: auth.lastName || "",
+    email: auth.email,
+    city: auth.city || "",
+    iban: auth.iban || "",
+    healthLinked: !!auth.healthLinked,
+    gdprAccepted: !!auth.gdprAccepted,
+    subscriptionPlan: userPlan(auth),
+    status_predplatneho: userPlan(auth) === "free" ? "free" : userPlan(auth) === "plus" ? "plus" : "premium",
+    mesacneBody: 0,
+    celkoveBody: 0,
+    streak_of_loss: 0,
+    winHistory: [],
+    dailyWalks: [],
+    created_at: auth.registeredAt || new Date().toISOString(),
+    registeredAt: auth.registeredAt || new Date().toISOString(),
+    source: "registration",
+  };
+}
+
+function mergeRegisteredUsers(existingUsers) {
+  if (typeof ChodzaAuth === "undefined") return { users: existingUsers, added: 0 };
+
+  const registered = ChodzaAuth.listRegisteredUsers();
+  if (!registered.length) return { users: existingUsers, added: 0 };
+
+  const byEmail = new Map(
+    existingUsers.map((u) => [String(u.email || "").toLowerCase(), { ...u }])
+  );
+  let added = 0;
+
+  for (const auth of registered) {
+    const key = String(auth.email || "").toLowerCase();
+    if (!key) continue;
+
+    const patch = {
+      username: auth.username,
+      firstName: auth.firstName,
+      lastName: auth.lastName,
+      city: auth.city || "",
+      iban: auth.iban || "",
+      healthLinked: !!auth.healthLinked,
+      gdprAccepted: !!auth.gdprAccepted,
+      registeredAt: auth.registeredAt,
+      source: "registration",
+      subscriptionPlan: userPlan(auth),
+      status_predplatneho: userPlan(auth) === "free" ? "free" : userPlan(auth) === "plus" ? "plus" : "premium",
+    };
+
+    if (byEmail.has(key)) {
+      const ex = byEmail.get(key);
+      Object.assign(ex, patch);
+      if (!ex.meno || ex.meno === ex.email) ex.meno = auth.username || ex.meno;
+      byEmail.set(key, ex);
+    } else {
+      byEmail.set(key, authUserToAdminRecord(auth));
+      added += 1;
+    }
+  }
+
+  return { users: [...byEmail.values()], added };
+}
+
+function formatRegistrationDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("sk-SK", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (_) {
+    return iso;
+  }
+}
+
+function updateRegistrationsAlert() {
+  const alert = document.getElementById("registrations-alert");
+  const text = document.getElementById("registrations-alert-text");
+  if (!alert || !text) return;
+
+  const registered = allUsers.filter(isRegisteredUser);
+  const unseen = registered.filter(isUnseenRegistration);
+  const totalReg = registered.length;
+
+  if (!unseen.length) {
+    alert.hidden = true;
+    alert.setAttribute("hidden", "");
+    return;
+  }
+
+  alert.hidden = false;
+  alert.removeAttribute("hidden");
+  const isEn = ChodzaI18n?.getLang() === "en";
+  const names = unseen
+    .slice(0, 5)
+    .map((u) => u.username || u.meno)
+    .join(", ");
+  const more = unseen.length > 5 ? ` (+${unseen.length - 5})` : "";
+
+  text.innerHTML = isEn
+    ? `<strong>${unseen.length} new registration${unseen.length > 1 ? "s" : ""}</strong> – ${escapeHtml(names)}${more}. Total registered: ${totalReg}.`
+    : `<strong>${unseen.length} nová registrácia${unseen.length > 1 ? "e" : ""}</strong> – ${escapeHtml(names)}${more}. Spolu registrovaných: ${totalReg}.`;
+}
+
+function renderRegistrationsSummary() {
+  updateRegistrationsAlert();
+}
+
+function getAdminScrollContainer() {
+  return document.querySelector(".admin-main");
+}
+
+function setActiveAdminNav(sectionId) {
+  document.querySelectorAll(".admin-nav__link").forEach((link) => {
+    const target = (link.getAttribute("href") || "").replace("#", "");
+    link.classList.toggle("admin-nav__link--active", target === sectionId);
+  });
+}
+
+function scrollToAdminSection(sectionId, updateHash = true) {
+  const main = getAdminScrollContainer();
+  const el = document.getElementById(sectionId);
+  if (!main || !el) return;
+
+  const topbar = document.querySelector(".admin-topbar");
+  const offset = (topbar?.offsetHeight || 72) + 20;
+  const top = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - offset;
+
+  main.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  setActiveAdminNav(sectionId);
+
+  if (updateHash) {
+    history.replaceState(null, "", `#${sectionId}`);
+  }
+}
+
+function bindAdminNavigation() {
+  const go = (e, sectionId) => {
+    e.preventDefault();
+    scrollToAdminSection(sectionId);
+  };
+
+  document.querySelectorAll(".admin-nav__link[href^='#']").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const id = (link.getAttribute("href") || "").slice(1);
+      if (id) go(e, id);
+    });
+  });
+
+  document.querySelectorAll(".admin-summary-card[data-admin-section]").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      go(e, card.getAttribute("data-admin-section"));
+    });
+  });
+
+  const initial = (location.hash || "#settings").replace("#", "");
+  if (document.getElementById(initial)) {
+    requestAnimationFrame(() => scrollToAdminSection(initial, false));
+  } else {
+    setActiveAdminNav("settings");
+  }
+
+  window.addEventListener("hashchange", () => {
+    const id = (location.hash || "").replace("#", "");
+    if (id && document.getElementById(id)) scrollToAdminSection(id, false);
+  });
+}
+
+function renderAdminSummary(settings) {
+  const s = settings || { goalKmPerPoint: 10, maxPointsPerDay: 3, prizePoolEur: 0, prizeMode: "percent" };
+  const registered = allUsers.filter(isRegisteredUser);
+  const unseen = registered.filter(isUnseenRegistration);
+  const paying = countPayingSubscribers(allUsers);
+  const withPoints = allUsers.filter(
+    (u) => u.mesacneBody > 0 && (typeof ChodzaPlans === "undefined" || ChodzaPlans.isDrawEligible(userPlan(u)))
+  ).length;
+  const isEn = ChodzaI18n?.getLang() === "en";
+  const price = typeof ChodzaI18n !== "undefined" ? ChodzaI18n.formatPrice() : formatEur(SUBSCRIPTION_PRICE_EUR);
+  const isManual = s.prizeMode === "manual";
+  const setVal = document.getElementById("summary-settings-value");
+  const setMeta = document.getElementById("summary-settings-meta");
+  if (setVal) {
+    setVal.textContent = isEn
+      ? `${s.goalKmPerPoint} km / point · max ${s.maxPointsPerDay}/day`
+      : `${s.goalKmPerPoint} km / bod · max ${s.maxPointsPerDay}/deň`;
+  }
+  if (setMeta) {
+    const total = Number(s.totalFundEur ?? s.prizePoolEur) || 0;
+    setMeta.textContent = isManual
+      ? isEn
+        ? `Manual prizes (${formatEur(total)} total)`
+        : `Manuálne sumy (spolu ${formatEur(total)})`
+      : total > 0
+        ? isEn
+          ? `Auto split from ${formatEur(total)}`
+          : `Automaticky z ${formatEur(total)}`
+        : isEn
+          ? `${paying} paying × ${price} (auto)`
+          : `${paying} platiacich × ${price} (auto)`;
+  }
+
+  const usrVal = document.getElementById("summary-users-value");
+  const usrMeta = document.getElementById("summary-users-meta");
+  if (usrVal) {
+    usrVal.textContent = isEn
+      ? `${allUsers.length} accounts`
+      : `${allUsers.length} účtov v systéme`;
+  }
+  if (usrMeta) {
+    const parts = [];
+    if (registered.length) {
+      parts.push(isEn ? `${registered.length} registered` : `${registered.length} registrovaných`);
+    }
+    if (unseen.length) {
+      parts.push(isEn ? `${unseen.length} new` : `${unseen.length} nových`);
+    }
+    if (paying) parts.push(isEn ? `${paying} premium` : `${paying} premium`);
+    usrMeta.textContent = parts.join(" · ") || (isEn ? "No registrations yet" : "Zatiaľ žiadne registrácie");
+  }
+
+  const drawVal = document.getElementById("summary-draw-value");
+  const drawMeta = document.getElementById("summary-draw-meta");
+  if (drawVal) {
+    drawVal.textContent = isEn
+      ? `${withPoints} in monthly draw`
+      : `${withPoints} v mesačnom žrebovaní`;
+  }
+  if (drawMeta) {
+    drawMeta.textContent = isEn
+      ? "3 main + 97 smaller prizes"
+      : "3 hlavné + 97 menších cien";
+  }
 }
 
 function seedMockUsers() {
   const month = currentMonthKey();
   const goal = 10;
   const ids = [
-    ["u-001", "ChodecPro_SK", "chodec@demo.sk", "premium"],
+    ["u-001", "ChodecPro_SK", "chodec@demo.sk", "plus"],
     ["u-002", "Krokomerista", "krok@demo.sk", "premium"],
-    ["u-003", "SynkoWalk", "synko@demo.sk", "premium"],
+    ["u-003", "SynkoWalk", "synko@demo.sk", "plus"],
     ["u-004", "MaratonMan", "maraton@demo.sk", "free"],
     ["u-005", "VečernáPrechádzka", "vecer@demo.sk", "premium"],
     ["u-006", "FitJuraj", "juraj@demo.sk", "cancelled"],
@@ -219,7 +552,15 @@ function seedMockUsers() {
   ];
 
   return ids.map(([id, meno, email, status], i) => {
-    const dailyWalks = buildDemoWalks(i, goal);
+    const plan =
+      status === "plus"
+        ? "plus"
+        : status === "premium"
+          ? "basic"
+          : status === "free"
+            ? "free"
+            : "free";
+    const dailyWalks = buildDemoWalks(i, goal, plan);
     const mesacneBody = dailyWalks.reduce((s, d) => s + d.body, 0);
     const celkoveBody = 40 + mesacneBody + i * 7;
     const streakSamples = [0, 0, 2, 1, 0, 3, 0, 1, 0, 2, 0, 0, 1, 0, 0];
@@ -227,7 +568,8 @@ function seedMockUsers() {
       id,
       meno,
       email,
-      status_predplatneho: status,
+      subscriptionPlan: plan,
+      status_predplatneho: plan === "free" ? "free" : plan === "plus" ? "plus" : status === "cancelled" ? "cancelled" : "premium",
       mesacneBody,
       celkoveBody,
       streak_of_loss: streakSamples[i % streakSamples.length],
@@ -238,7 +580,7 @@ function seedMockUsers() {
   });
 }
 
-function buildDemoWalks(seed, goalKm) {
+function buildDemoWalks(seed, goalKm, planId) {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
@@ -246,7 +588,7 @@ function buildDemoWalks(seed, goalKm) {
   const walks = [];
   for (let d = 1; d <= days; d++) {
     const km = Math.max(0, ((seed * 3 + d * 7) % 35) + (d % 5) * 2.3);
-    const body = pointsFromKm(km, goalKm, 3);
+    const body = pointsFromKm(km, goalKm, 3, planId || "basic");
     walks.push({
       datum: `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
       kilometre: Math.round(km * 10) / 10,
@@ -292,7 +634,12 @@ const MockStore = {
 
   getUsers() {
     const data = this.load();
-    return data.users;
+    const { users, added } = mergeRegisteredUsers(data.users);
+    if (added > 0 || users.length !== data.users.length) {
+      data.users = users;
+      this.save(data);
+    }
+    return users;
   },
 
   saveUsers(users) {
@@ -302,22 +649,50 @@ const MockStore = {
     return users;
   },
 
-  closeMonth(monthKey, poolEur, drawOptions) {
+  closeMonth(monthKey, settings, drawOptions) {
     const data = this.load();
     const users = data.users;
-    const participants = users.map((u) => ({
-      userId: u.id,
-      nick: u.meno,
-      monthly_points: u.mesacneBody,
-      streak_of_loss: u.streak_of_loss ?? 0,
-    }));
+    const participants = users
+      .filter((u) => typeof ChodzaPlans === "undefined" || ChodzaPlans.isDrawEligible(userPlan(u)))
+      .map((u) => ({
+        userId: u.id,
+        nick: u.meno,
+        monthly_points: u.mesacneBody,
+        streak_of_loss: u.streak_of_loss ?? 0,
+      }));
 
-    const manualPool = poolEur > 0 ? poolEur : null;
-    const draw = window.ChodzaDraw.runMonthlyDraw(participants, monthKey, manualPool, drawOptions);
+    const result = window.ChodzaDraw.runMonthlyClose({
+      participants,
+      allUsers: users,
+      monthKey,
+      settings,
+      getUserPlan: userPlan,
+      options: drawOptions,
+    });
+    const { draw, walkers, prizes } = result;
 
     for (const u of users) {
       const streakUpd = draw.streakUpdates.find((s) => s.userId === u.id);
       if (streakUpd) u.streak_of_loss = streakUpd.streak_of_loss;
+    }
+
+    for (const w of walkers) {
+      const user = users.find((u) => u.id === w.userId);
+      if (!user) continue;
+      if (w.prizeType === "premium_month") {
+        user.subscriptionPlan = "basic";
+        user.premium = true;
+        user.premiumGrantedMonth = monthKey;
+      }
+      user.winHistory = user.winHistory || [];
+      user.winHistory.push({
+        month: monthKey,
+        place: w.place,
+        type: "walker",
+        sumaEur: w.prizeEur,
+        km: w.km,
+        prizeType: w.prizeType,
+      });
     }
 
     for (const w of [...draw.main, ...draw.small]) {
@@ -330,9 +705,6 @@ const MockStore = {
         type: w.type,
         sumaEur: w.prizeEur,
       });
-      user.celkoveBody = (user.celkoveBody || 0) + user.mesacneBody;
-      user.mesacneBody = 0;
-      user.dailyWalks = [];
     }
 
     for (const u of users) {
@@ -347,31 +719,37 @@ const MockStore = {
     if (!data.closedMonths.includes(monthKey)) data.closedMonths.push(monthKey);
     this.save(data);
 
-    const winnersPayload = {
+    syncWinnersToApp(monthKey, {
       monthKey,
-      poolEur,
       closedAt: new Date().toISOString(),
-      main: draw.main.map((w) => ({ place: w.place, nick: w.nick, userId: w.userId })),
-      small: draw.small.map((w) => ({ nick: w.nick, userId: w.userId })),
-      prizes: draw.prizes,
-    };
-    syncWinnersToApp(monthKey, winnersPayload, poolEur);
+      prizeMode: result.prizeMode,
+      prizes,
+      lottery: {
+        main: draw.main.map((w) => ({
+          place: w.place,
+          nick: w.nick,
+          userId: w.userId,
+          prizeEur: w.prizeEur,
+        })),
+        small: draw.small.map((w) => ({
+          nick: w.nick,
+          userId: w.userId,
+          prizeEur: w.prizeEur,
+        })),
+      },
+      walkers,
+    });
 
-    return { draw, users };
+    return { ...result, users };
   },
 };
 
-function syncWinnersToApp(monthKey, payload, poolEur) {
+function syncWinnersToApp(monthKey, payload) {
   try {
     let map = {};
     const raw = localStorage.getItem(WINNERS_KEY);
     if (raw) map = JSON.parse(raw);
-    map[monthKey] = {
-      payingUsers: 0,
-      manualPoolEur: poolEur,
-      main: payload.main.map((w) => ({ place: w.place, nick: w.nick })),
-      small: payload.small.map((w) => ({ nick: w.nick })),
-    };
+    map[monthKey] = payload;
     localStorage.setItem(WINNERS_KEY, JSON.stringify(map));
   } catch (_) {}
 }
@@ -385,7 +763,7 @@ async function init() {
   if (langSel) {
     langSel.value = ChodzaI18n?.getLang() ?? "sk";
     langSel.addEventListener("change", () => {
-      ChodzaI18n.setLang(langSel.value);
+      ChodzaI18n.setLang(langSel.value, "admin");
       applyAdminLanguage();
     });
   }
@@ -394,6 +772,7 @@ async function init() {
     month: formatMonthLabel(monthKey),
   });
   await loadSettingsForm();
+  bindAdminNavigation();
   await refreshUsersTable();
   bindEvents();
 }
@@ -406,31 +785,87 @@ async function loadSettingsForm() {
         goalType: "walk_km",
         goalKmPerPoint: fromHash.goalKmPerPoint,
         maxPointsPerDay: fromHash.maxPointsPerDay,
+        prizeMode: "percent",
+        totalFundEur: fromHash.prizePoolEur,
         prizePoolEur: fromHash.prizePoolEur,
+        manualPrizes: {
+          drawFirst: 0,
+          drawSecond: 0,
+          drawThird: 0,
+          smallEach: 0,
+          walkerFirst: 0,
+          walkerSecond: 0,
+          walkerThird: 0,
+        },
       });
     }
   }
 
   const s = await ChodzaAdminAPI.getMonthlySettings(monthKey);
-  document.getElementById("prize-pool-eur").value =
-    s.prizePoolEur > 0 ? String(s.prizePoolEur) : "";
+  const mode = s.prizeMode === "manual" ? "manual" : "percent";
+  document.querySelectorAll('input[name="prizeMode"]').forEach((r) => {
+    r.checked = r.value === mode;
+  });
+  document.getElementById("total-fund-eur").value =
+    (s.totalFundEur ?? s.prizePoolEur) > 0 ? String(s.totalFundEur ?? s.prizePoolEur) : "";
+  const mp = s.manualPrizes || {};
+  document.getElementById("mp-draw-first").value = mp.drawFirst > 0 ? String(mp.drawFirst) : "";
+  document.getElementById("mp-draw-second").value = mp.drawSecond > 0 ? String(mp.drawSecond) : "";
+  document.getElementById("mp-draw-third").value = mp.drawThird > 0 ? String(mp.drawThird) : "";
+  document.getElementById("mp-small-each").value = mp.smallEach > 0 ? String(mp.smallEach) : "";
+  document.getElementById("mp-walker-first").value = mp.walkerFirst > 0 ? String(mp.walkerFirst) : "";
+  document.getElementById("mp-walker-second").value = mp.walkerSecond > 0 ? String(mp.walkerSecond) : "";
+  document.getElementById("mp-walker-third").value = mp.walkerThird > 0 ? String(mp.walkerThird) : "";
+  applyPrizeModeUi();
   document.getElementById("goal-type").value = s.goalType || "walk_km";
   document.getElementById("goal-km").value = s.goalKmPerPoint ?? 10;
   document.getElementById("max-points").value = s.maxPointsPerDay ?? 3;
   updateBackToAppLink(s);
+  renderRevenuePreview(allUsers, s);
+  renderAdminSummary(s);
 }
 
 function bindEvents() {
   document.getElementById("month-settings-form").addEventListener("submit", onSaveSettings);
-  document.getElementById("prize-pool-eur")?.addEventListener("input", () => {
-    const settings = {
-      prizePoolEur: Number(document.getElementById("prize-pool-eur").value) || 0,
-      goalKmPerPoint: Number(document.getElementById("goal-km").value) || 10,
-      maxPointsPerDay: Number(document.getElementById("max-points").value) || 3,
-    };
-    renderRevenuePreview(allUsers, settings);
+  document.querySelectorAll('input[name="prizeMode"]').forEach((r) => {
+    r.addEventListener("change", () => {
+      applyPrizeModeUi();
+      renderRevenuePreview(allUsers, collectSettingsFromForm());
+    });
+  });
+  const previewInputs = [
+    "total-fund-eur",
+    "mp-draw-first",
+    "mp-draw-second",
+    "mp-draw-third",
+    "mp-small-each",
+    "mp-walker-first",
+    "mp-walker-second",
+    "mp-walker-third",
+  ];
+  previewInputs.forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", () => {
+      renderRevenuePreview(allUsers, collectSettingsFromForm());
+    });
   });
   document.getElementById("user-search").addEventListener("input", onSearch);
+  document.getElementById("btn-mark-registrations-seen")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const emails = allUsers.filter(isUnseenRegistration).map((u) => u.email).filter(Boolean);
+    if (!emails.length) {
+      updateRegistrationsAlert();
+      return;
+    }
+    markAllRegistrationsSeen(emails);
+    renderUsersTable();
+    updateRegistrationsAlert();
+  });
+  window.addEventListener("chodza-users-changed", () => {
+    refreshUsersTable();
+  });
+  window.addEventListener("storage", (e) => {
+    if (e.key === ChodzaAuth?.USERS_KEY) refreshUsersTable();
+  });
   document.getElementById("btn-close-month").addEventListener("click", onCloseMonth);
   document.getElementById("modal-close").addEventListener("click", () => {
     document.getElementById("user-modal").close();
@@ -439,12 +874,6 @@ function bindEvents() {
     if (e.target.id === "user-modal") e.target.close();
   });
 
-  document.querySelectorAll(".admin-nav__link").forEach((link) => {
-    link.addEventListener("click", () => {
-      document.querySelectorAll(".admin-nav__link").forEach((l) => l.classList.remove("admin-nav__link--active"));
-      link.classList.add("admin-nav__link--active");
-    });
-  });
 }
 
 async function onSaveSettings(e) {
@@ -453,16 +882,11 @@ async function onSaveSettings(e) {
   status.textContent = "";
   status.classList.remove("admin-form__status--error");
 
-  const poolRaw = document.getElementById("prize-pool-eur").value.trim();
-  const payload = {
-    prizePoolEur: poolRaw === "" ? 0 : Number(poolRaw),
-    goalType: document.getElementById("goal-type").value,
-    goalKmPerPoint: Number(document.getElementById("goal-km").value),
-    maxPointsPerDay: Number(document.getElementById("max-points").value),
-  };
+  const payload = collectSettingsFromForm();
+  payload.prizePoolEur = payload.totalFundEur;
 
-  if (!Number.isFinite(payload.prizePoolEur) || payload.prizePoolEur < 0) {
-    status.textContent = "Suma koša musí byť 0 alebo viac (prázdne = z predplatiteľov).";
+  if (!Number.isFinite(payload.totalFundEur) || payload.totalFundEur < 0) {
+    status.textContent = "Celková suma fondu musí byť 0 alebo viac.";
     status.classList.add("admin-form__status--error");
     return;
   }
@@ -507,12 +931,16 @@ function updateBackToAppLink(settings) {
 
 function onSearch() {
   const q = document.getElementById("user-search").value.trim().toLowerCase();
-  filteredUsers = allUsers.filter(
-    (u) =>
-      !q ||
-      u.meno.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.id.toLowerCase().includes(q)
+  filteredUsers = sortUsersForAdmin(
+    allUsers.filter(
+      (u) =>
+        !q ||
+        u.meno.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.id.toLowerCase().includes(q) ||
+        (u.username && u.username.toLowerCase().includes(q)) ||
+        (u.city && u.city.toLowerCase().includes(q))
+    )
   );
   renderUsersTable();
 }
@@ -520,11 +948,13 @@ function onSearch() {
 async function refreshUsersTable() {
   const settings = await ChodzaAdminAPI.getMonthlySettings(monthKey);
   allUsers = await ChodzaAdminAPI.getUsers();
-  allUsers = recalcUsersFromWalks(allUsers, settings);
+  allUsers = sortUsersForAdmin(recalcUsersFromWalks(allUsers, settings));
   await ChodzaAdminAPI.saveUsers(allUsers);
   filteredUsers = [...allUsers];
   renderRevenuePreview(allUsers, settings);
+  renderAdminSummary(settings);
   onSearch();
+  renderRegistrationsSummary();
 }
 
 function recalcUsersFromWalks(users, settings) {
@@ -533,7 +963,7 @@ function recalcUsersFromWalks(users, settings) {
   return users.map((u) => {
     const walks = u.dailyWalks || [];
     const mesacneBody = walks.reduce((s, d) => {
-      const b = d.body ?? pointsFromKm(d.kilometre, goal, max);
+      const b = d.body ?? pointsFromKm(d.kilometre, goal, max, userPlan(u));
       return s + b;
     }, 0);
     return { ...u, mesacneBody };
@@ -553,12 +983,28 @@ function renderUsersTable() {
 
   for (const u of filteredUsers) {
     const tr = document.createElement("tr");
-    const subClass = u.status_predplatneho === "premium" ? "badge--active" : "badge--inactive";
+    const plan = userPlan(u);
+    const subClass =
+      plan === "plus" ? "badge--plus" : plan === "basic" ? "badge--active" : "badge--inactive";
+    const isNew = isUnseenRegistration(u);
+    const isReg = isRegisteredUser(u);
+    if (isNew) tr.classList.add("admin-table__row--new");
+
+    const regCell = isReg
+      ? `<span class="badge badge--new">Nový</span><br /><time datetime="${u.registeredAt || ""}">${formatRegistrationDate(u.registeredAt)}</time>`
+      : `<span class="admin-muted">Demo</span>`;
+
+    const nameCell =
+      isRegisteredUser(u) && u.username
+        ? `<strong>@${escapeHtml(u.username)}</strong><br /><span class="admin-muted">${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim())}</span>`
+        : escapeHtml(u.meno);
+
     tr.innerHTML = `
       <td title="${u.id}">${shortId(u.id)}</td>
-      <td>${escapeHtml(u.meno)}</td>
+      <td>${nameCell}</td>
       <td>${escapeHtml(u.email)}</td>
-      <td><span class="badge ${subClass}">${subscriptionLabel(u.status_predplatneho)}</span></td>
+      <td class="reg-cell">${regCell}</td>
+      <td><span class="badge ${subClass}">${subscriptionLabel(u)}</span></td>
       <td><strong>${u.mesacneBody}</strong></td>
       <td>${u.celkoveBody ?? 0}</td>
       <td class="win-history-cell">${escapeHtml(formatWinHistory(u.winHistory))}</td>
@@ -592,7 +1038,7 @@ async function openUserModal(userId) {
       <tr class="${d.splnene ? "is-ok" : ""}">
         <td>${d.datum}</td>
         <td>${d.kilometre} km</td>
-        <td>${d.body ?? pointsFromKm(d.kilometre, settings.goalKmPerPoint, settings.maxPointsPerDay)}</td>
+        <td>${d.body ?? pointsFromKm(d.kilometre, settings.goalKmPerPoint, settings.maxPointsPerDay, userPlan(u))}</td>
         <td>${d.splnene ? "Áno" : "Nie"}</td>
       </tr>`
         )
@@ -611,11 +1057,24 @@ async function openUserModal(userId) {
           .join("")}</ul>`
       : "<p>Ešte nevyhral.</p>";
 
+  const regBlock =
+    isRegisteredUser(u)
+      ? `
+      <div><dt>Meno a priezvisko</dt><dd>${escapeHtml(`${u.firstName || ""} ${u.lastName || ""}`.trim() || "—")}</dd></div>
+      <div><dt>Nick</dt><dd>@${escapeHtml(u.username || u.meno)}</dd></div>
+      <div><dt>Mesto / obec</dt><dd>${escapeHtml(u.city || "—")}</dd></div>
+      <div><dt>IBAN</dt><dd>${u.iban ? escapeHtml(u.iban) : "— (nedoplnené)"}</dd></div>
+      <div><dt>Health Connect</dt><dd>${u.healthLinked ? "Prepojené" : "Neprepojené"}</dd></div>
+      <div><dt>Registrácia</dt><dd>${formatRegistrationDate(u.registeredAt)}</dd></div>
+      <div><dt>GDPR</dt><dd>${u.gdprAccepted ? "Súhlas udelený" : "—"}</dd></div>`
+      : `<div><dt>Zdroj</dt><dd>Demo účet</dd></div>`;
+
   document.getElementById("modal-user-body").innerHTML = `
     <dl class="modal-grid">
       <div><dt>ID</dt><dd>${escapeHtml(u.id)}</dd></div>
       <div><dt>E-mail</dt><dd>${escapeHtml(u.email)}</dd></div>
-      <div><dt>Predplatné</dt><dd>${subscriptionLabel(u.status_predplatneho)}</dd></div>
+      ${regBlock}
+      <div><dt>Predplatné</dt><dd>${subscriptionLabel(u)}</dd></div>
       <div><dt>Body tento mesiac</dt><dd>${u.mesacneBody}</dd></div>
       <div><dt>Celkový level</dt><dd>${u.celkoveBody ?? 0} bodov</dd></div>
       <div><dt>Pravidlo bodov</dt><dd>1 bod = ${settings.goalKmPerPoint} km (max ${settings.maxPointsPerDay}/deň)</dd></div>
@@ -636,25 +1095,23 @@ async function openUserModal(userId) {
 }
 
 async function onCloseMonth() {
-  const settings = await ChodzaAdminAPI.getMonthlySettings(monthKey);
-  const source = resolvePrizeSource(settings, allUsers);
-  const breakdown = getPrizeBreakdown(source.payingUsers, source.manualPool);
-  const withPoints = allUsers.filter((u) => u.mesacneBody > 0).length;
+  const settings = collectSettingsFromForm();
+  const prizes = resolvePrizeConfig(settings, allUsers);
+  const withPoints = allUsers.filter(
+    (u) => u.mesacneBody > 0 && (typeof ChodzaPlans === "undefined" || ChodzaPlans.isDrawEligible(userPlan(u)))
+  ).length;
 
-  let fundText;
-  if (source.mode === "manual") {
-    fundText = `Manuálny kôš: ${formatEur(source.manualPool)}`;
-  } else {
-    fundText =
-      `Tržby: ${source.payingUsers} × ${formatEur(SUBSCRIPTION_PRICE_EUR)} = ${formatEur(source.revenue)}\n` +
-      `Pre vás 45 %: ${formatEur(breakdown?.ownerAmount ?? 0)}\n` +
-      `Výhry: 1. ${formatEur(breakdown?.firstPrize)} / 2. ${formatEur(breakdown?.secondPrize)} / 3. ${formatEur(breakdown?.thirdPrize)} / 97× ${formatEur(breakdown?.smallPrizeEach)}`;
-  }
+  const fundText =
+    `Režim: ${settings.prizeMode === "manual" ? "manuálne sumy" : "automaticky %"}\n` +
+    `Fond / výplaty: ${formatEur(prizes?.totalFundEur ?? 0)}\n` +
+    `Pre vás (+ rezerva FREE makačov): ${formatEur(prizes?.ownerAmount ?? 0)}\n` +
+    `Osudie: ${formatEur(prizes?.drawFirst)} / ${formatEur(prizes?.drawSecond)} / ${formatEur(prizes?.drawThird)} + 97× ${formatEur(prizes?.smallEach)}\n` +
+    `Makači: ${formatEur(prizes?.walkerFirst)} / ${formatEur(prizes?.walkerSecond)} / ${formatEur(prizes?.walkerThird)}`;
 
   const ok = confirm(
     `Uzatvoriť ${formatMonthLabel(monthKey)}?\n\n` +
       `${fundText}\n` +
-      `Účastníci s bodmi v koši: ${withPoints}\n\n` +
+      `Účastníci s bodmi v osudí: ${withPoints}\n\n` +
       `Všetkým sa vynulujú mesačné body. Pokračovať?`
   );
   if (!ok) return;
@@ -664,12 +1121,8 @@ async function onCloseMonth() {
   btn.textContent = "Žrebujem…";
 
   try {
-    const poolForStore = source.manualPool ?? 0;
-    const { draw } = await ChodzaAdminAPI.closeMonth(monthKey, poolForStore, {
-      payingUsers: source.payingUsers,
-      priceMonthly: SUBSCRIPTION_PRICE_EUR,
-    });
-    renderDrawResults(draw, source);
+    const result = await ChodzaAdminAPI.closeMonth(monthKey, settings, {});
+    renderDrawResults(result);
     await refreshUsersTable();
     document.getElementById("settings-save-status").textContent =
       `Mesiac ${formatMonthLabel(monthKey)} uzatvorený. Mesačné body vynulované.`;
@@ -681,117 +1134,59 @@ async function onCloseMonth() {
   }
 }
 
-function renderDrawResults(draw, prizeSource) {
+function renderDrawResults(result) {
   const block = document.getElementById("draw-results");
   block.hidden = false;
-  const p = draw.prizes || {};
-  const smallSlots = p.smallCount ?? 97;
-  const smallDrawn = draw.small?.length ?? 0;
-  const smallEach = p.smallPrizeEach ?? 0;
-  const smallTotal = smallEach * smallSlots;
-  const prizesTotal =
-    (p.firstPrize ?? 0) + (p.secondPrize ?? 0) + (p.thirdPrize ?? 0) + smallTotal;
-
-  const fundLabel =
-    prizeSource.mode === "revenue"
-      ? `tržby ${formatEur(p.revenue ?? prizeSource.revenue)} (${prizeSource.payingUsers} × ${formatEur(SUBSCRIPTION_PRICE_EUR)})`
-      : `manuálny kôš ${formatEur(prizeSource.manualPool)}`;
+  const draw = result.draw;
+  const p = result.prizes || draw.prizes || {};
+  const walkers = result.walkers || [];
 
   document.getElementById("draw-results-meta").textContent =
-    `${formatMonthLabel(draw.monthKey)} · ${fundLabel} · ` +
-    `${draw.participantCount} hráčov · ${draw.basketSize ?? draw.poolTicketCount} lístkov v osudí` +
+    `${formatMonthLabel(draw.monthKey)} · ${draw.participantCount} v osudí · ${draw.basketSize} lístkov` +
     (draw.warning ? ` · ${draw.warning}` : "");
 
-  const revenueHeader =
-    prizeSource.mode === "revenue"
-      ? `
-    <div class="draw-prize-summary__revenue">
-      <p><strong>${prizeSource.payingUsers}</strong> predplatiteľov × <strong>${formatEur(SUBSCRIPTION_PRICE_EUR)}</strong>
-        = <strong>${formatEur(p.revenue ?? prizeSource.revenue)}</strong></p>
-    </div>
-    <div class="draw-prize-summary__row draw-prize-summary__row--owner">
-      <span>Pre vás (45 % tržieb)</span>
-      <strong>${formatEur(p.ownerAmount)}</strong>
-    </div>`
-      : `
-    <p class="admin-hint draw-prize-summary__manual-note">Manuálny kôš – suma rozdelená len medzi výhercov (15/55, 10/55, 6/55, 24/55).</p>`;
-
-  const ownerLine =
-    prizeSource.mode === "revenue" && p.ownerAmount > 0
-      ? ""
-      : p.ownerAmount > 0
-        ? `<div class="draw-prize-summary__row draw-prize-summary__row--owner">
-             <span>Pre vás</span>
-             <strong>${formatEur(p.ownerAmount)}</strong>
-           </div>`
-        : "";
-
-  const pctLabel = (pct) =>
-    prizeSource.mode === "revenue" ? ` <span class="draw-prize-summary__pct">(${pct} % tržieb)</span>` : "";
-
   document.getElementById("draw-prize-summary").innerHTML = `
-    <h4 class="draw-prize-summary__title">Rozdelenie peňazí podľa miest</h4>
-    ${revenueHeader}
+    <h4 class="draw-prize-summary__title">Rozdelenie odmien</h4>
     <div class="draw-prize-summary__table">
-      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
-        <span>1. miesto – hlavná cena${pctLabel(15)}</span>
-        <strong>${formatEur(p.firstPrize ?? 0)}</strong>
-      </div>
-      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
-        <span>2. miesto – hlavná cena${pctLabel(10)}</span>
-        <strong>${formatEur(p.secondPrize ?? 0)}</strong>
-      </div>
-      <div class="draw-prize-summary__row draw-prize-summary__row--highlight">
-        <span>3. miesto – hlavná cena${pctLabel(6)}</span>
-        <strong>${formatEur(p.thirdPrize ?? 0)}</strong>
-      </div>
-      <div class="draw-prize-summary__row">
-        <span>97× menšia cena (na osobu)${pctLabel(24)}</span>
-        <strong>${formatEur(smallEach)}</strong>
-      </div>
-      <div class="draw-prize-summary__row draw-prize-summary__row--sub">
-        <span>Celkom za 97 menších cien</span>
-        <span>${formatEur(smallTotal)}</span>
-      </div>
-      <div class="draw-prize-summary__row draw-prize-summary__row--total">
-        <span>Spolu výhry z fondu (3 + ${smallSlots} miest)</span>
-        <strong>${formatEur(prizesTotal)}</strong>
-      </div>
-      ${ownerLine}
-    </div>
-    <p class="admin-hint draw-prize-summary__hint">Nižšie je zoznam konkrétnych výhercov s priradenou sumou.</p>
-  `;
+      <div class="draw-prize-summary__row draw-prize-summary__row--owner"><span>Pre vás (+ rezerva)</span><strong>${formatEur(p.ownerAmount)}</strong></div>
+      <div class="draw-prize-summary__row"><span>Osudie 1. / 2. / 3.</span><strong>${formatEur(p.drawFirst)} / ${formatEur(p.drawSecond)} / ${formatEur(p.drawThird)}</strong></div>
+      <div class="draw-prize-summary__row"><span>97× osudie</span><strong>${formatEur(p.smallEach)} / os.</strong></div>
+      <div class="draw-prize-summary__row"><span>Makači TOP 3</span><strong>${formatEur(p.walkerFirst)} / ${formatEur(p.walkerSecond)} / ${formatEur(p.walkerThird)}</strong></div>
+    </div>`;
 
   const fmtVirtual = (w) =>
-    `virtual ${w.virtual_points?.toFixed?.(1) ?? w.virtual_points} → ${w.basketTickets} lístkov`;
-
-  const mainHead = document.querySelector("#draw .draw-panel h4");
-  if (mainHead) {
-    mainHead.textContent =
-      `Hlavné ceny (3) — 1.: ${formatEur(p.firstPrize)}, 2.: ${formatEur(p.secondPrize)}, 3.: ${formatEur(p.thirdPrize)}`;
-  }
-  const smallHead = document.querySelectorAll("#draw .draw-panel h4")[1];
-  if (smallHead) {
-    smallHead.textContent = `Menšie ceny (${smallDrawn} vyžrebovaných / ${smallSlots}) — po ${formatEur(smallEach)}`;
-  }
+    `vp ${w.virtual_points?.toFixed?.(1) ?? w.virtual_points} · ${w.basketTickets} lístkov`;
 
   document.getElementById("draw-main-list").innerHTML = draw.main
     .map(
       (w) =>
-        `<li><strong>@${escapeHtml(w.nick)}</strong> — ${w.place}. miesto ` +
+        `<li><strong>@${escapeHtml(w.nick)}</strong> — ${w.place}. ` +
         `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span> ` +
-        `<span class="admin-hint">(${fmtVirtual(w)}, streak ${w.streak_of_loss})</span></li>`
+        `<span class="admin-hint">(${fmtVirtual(w)})</span></li>`
     )
     .join("");
 
   document.getElementById("draw-small-list").innerHTML = draw.small
     .map(
       (w, i) =>
-        `<li>${i + 1}. @${escapeHtml(w.nick)} ` +
-        `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span> ` +
-        `<span class="admin-hint">(${fmtVirtual(w)})</span></li>`
+        `<li>${i + 1}. @${escapeHtml(w.nick)} <span class="draw-list__prize">${formatEur(w.prizeEur)}</span></li>`
     )
     .join("");
+
+  const walkersList = document.getElementById("draw-walkers-list");
+  if (walkersList) {
+    walkersList.innerHTML = walkers.length
+      ? walkers
+          .map((w) => {
+            const prize =
+              w.prizeType === "premium_month"
+                ? `<span class="draw-list__premium">PREMIUM mesiac zdarma</span> <span class="admin-hint">(hotovosť ${formatEur(w.forfeitedEur)} → rezerva)</span>`
+                : `<span class="draw-list__prize">${formatEur(w.prizeEur)}</span>`;
+            return `<li><strong>@${escapeHtml(w.nick)}</strong> — ${w.km} km · ${w.place}. makač ${prize}</li>`;
+          })
+          .join("")
+      : "<li class=\"admin-hint\">Žiadna aktivita v km tento mesiac.</li>";
+  }
 }
 
 init();

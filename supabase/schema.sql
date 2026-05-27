@@ -4,8 +4,10 @@ create table public.users (
   id uuid primary key default gen_random_uuid(),
   meno text not null,
   email text unique not null,
+  subscription_plan text not null default 'free'
+    check (subscription_plan in ('free', 'basic', 'plus')),
   status_predplatneho text not null default 'free'
-    check (status_predplatneho in ('free', 'premium', 'cancelled')),
+    check (status_predplatneho in ('free', 'premium', 'plus', 'cancelled')),
   stripe_customer_id text,
   created_at timestamptz not null default now()
 );

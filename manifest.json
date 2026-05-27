@@ -2,7 +2,7 @@
   "name": "Chôdza",
   "short_name": "Chôdza",
   "description": "Denná chôdza, mesačný kôš, profil",
-  "start_url": "./index.html",
+  "start_url": "./welcome.html",
   "display": "standalone",
   "background_color": "#f0f5ef",
   "theme_color": "#558352",

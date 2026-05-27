@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a1209" />
+    <title>Chôdza – Prihlásenie</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <div class="welcome-page">
+      <header class="welcome-hero">
+        <div class="welcome-logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" stroke="#5cff6a" stroke-width="2" opacity="0.4" />
+            <path
+              d="M22 42c4-14 12-22 20-26M28 38l6-18 8 6-4 14"
+              stroke="#7dff88"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="44" cy="18" r="4" fill="#5cff6a" />
+          </svg>
+        </div>
+        <span class="welcome-logo__name">CHÔDZA</span>
+        <h1 class="welcome-slogan" style="font-size: 1.35rem">Prihlás sa a pokračuj v chôdzi</h1>
+      </header>
+
+      <form class="welcome-form" id="login-form" novalidate>
+        <section class="welcome-section">
+          <div class="field">
+            <label class="field__label" for="login-email">E-mail</label>
+            <input class="field__input" id="login-email" type="email" autocomplete="email" required />
+            <p class="field__error" id="err-login-email"></p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="login-password">Heslo</label>
+            <div class="field__pw-wrap">
+              <input class="field__input" id="login-password" type="password" autocomplete="current-password" required />
+              <button type="button" class="field__pw-toggle" data-pw-toggle="login-password" aria-label="Zobraziť heslo">
+                👁
+              </button>
+            </div>
+            <p class="field__error" id="err-login-password"></p>
+          </div>
+        </section>
+
+        <button type="submit" class="btn-cta">Prihlásiť sa</button>
+        <p class="welcome-login-link">
+          Nemáš účet? <a href="welcome.html">Zaregistruj sa</a>
+        </p>
+      </form>
+    </div>
+
+    <div class="welcome-toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="scripts/auth-store.js?v=2"></script>
+    <script src="login.js?v=2"></script>
+  </body>
+</html>

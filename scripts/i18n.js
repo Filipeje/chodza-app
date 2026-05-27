@@ -1,8 +1,11 @@
 /**
- * Slovenčina / English – app + admin
+ * Slovenčina / English – app a admin majú oddelený jazyk v localStorage
  */
 (function (root) {
-  const LANG_KEY = "chodza-lang";
+  const LANG_KEY_APP = "chodza-lang-app";
+  const LANG_KEY_ADMIN = "chodza-lang-admin";
+  /** @deprecated spoločný kľúč – len migrácia */
+  const LANG_KEY_LEGACY = "chodza-lang";
   const SUBSCRIPTION_PRICE = 4.99;
 
   const messages = {
@@ -89,6 +92,18 @@
       "points.many": "{n} bodov",
       "weekdays": ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"],
       "sync.done": "Aktualizované ✓",
+      "health.notLinked": "Health nie je prepojený – stlač „Aktualizovať km“ alebo prepoj v Profile.",
+      "health.lastSync": "Auto-sync z Health · naposledy {time}",
+      "health.neverSynced": "ešte nesynchronizované",
+      "health.connect": "Prepojiť Apple / Google Health",
+      "health.connected": "Health prepojený · sync každú hodinu",
+      "profile.health": "Zdravie (kroky / km)",
+      "profile.notifyHint": "Povolením dostaneš povzbudenie, keď ti chýba málo km do bodu.",
+      "notify.title": "Chôdza",
+      "notify.almostPoint": "Ešte to stihneš! Chýba ti len {km} km do prvého bodu dnes.",
+      "notify.almostNext": "Skoro ďalší bod! Ešte {km} km a máš ho.",
+      "notify.eveningPush": "Večer v hre – do ďalšieho bodu ti chýba len {km} km.",
+      "notify.maxPoints": "Super! Dnes už máš maximum {max} bodov. Pokračuj v chôdzi!",
       "meta.description": "Športová chôdza – denný cieľ, mesačný kôš, profil",
     },
     en: {
@@ -174,6 +189,18 @@
       "points.many": "{n} points",
       "weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
       "sync.done": "Updated ✓",
+      "health.notLinked": "Health not linked – tap Update km or link in Profile.",
+      "health.lastSync": "Health auto-sync · last {time}",
+      "health.neverSynced": "not synced yet",
+      "health.connect": "Link Apple / Google Health",
+      "health.connected": "Health linked · sync every hour",
+      "profile.health": "Health (steps / km)",
+      "profile.notifyHint": "Get a nudge when you are close to your next point.",
+      "notify.title": "Walk",
+      "notify.almostPoint": "You can still make it! Only {km} km to your first point today.",
+      "notify.almostNext": "Almost there! {km} km to your next point.",
+      "notify.eveningPush": "Evening push – just {km} km to your next point.",
+      "notify.maxPoints": "Great! You already have max {max} points today.",
       "meta.description": "Sport walking – daily goal, monthly pool, profile",
     },
   };
@@ -257,7 +284,45 @@
 
   let currentLang = "sk";
 
-  function getLang() {
+  function getScope() {
+    if (typeof document !== "undefined") {
+      const scope = document.documentElement?.dataset?.i18nScope;
+      if (scope === "admin" || scope === "app") return scope;
+      const path = location.pathname || location.href || "";
+      if (/admin\.html/i.test(path)) return "admin";
+    }
+    return "app";
+  }
+
+  function langStorageKey(scope) {
+    return scope === "admin" ? LANG_KEY_ADMIN : LANG_KEY_APP;
+  }
+
+  function readStoredLang(scope) {
+    try {
+      const key = langStorageKey(scope);
+      let saved = localStorage.getItem(key);
+      if (saved !== "en" && saved !== "sk") {
+        const legacy = localStorage.getItem(LANG_KEY_LEGACY);
+        if (legacy === "en" || legacy === "sk") saved = legacy;
+      }
+      if ((saved !== "en" && saved !== "sk") && scope === "app") {
+        const settings = localStorage.getItem("chodza-settings");
+        if (settings) {
+          const s = JSON.parse(settings);
+          if (s.lang === "en" || s.lang === "sk") saved = s.lang;
+        }
+      }
+      return saved === "en" || saved === "sk" ? saved : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getLang(scope) {
+    if (scope === "admin" || scope === "app") {
+      return readStoredLang(scope) || "sk";
+    }
     return currentLang;
   }
 
@@ -265,25 +330,19 @@
     return currentLang === "en" ? "en-GB" : "sk-SK";
   }
 
-  function setLang(lang) {
+  function setLang(lang, scope) {
     if (lang !== "sk" && lang !== "en") return;
-    currentLang = lang;
+    const target = scope === "admin" || scope === "app" ? scope : getScope();
+    if (target === getScope()) currentLang = lang;
     try {
-      localStorage.setItem(LANG_KEY, lang);
+      localStorage.setItem(langStorageKey(target), lang);
     } catch (_) {}
-    document.documentElement.lang = lang;
+    if (target === getScope()) document.documentElement.lang = lang;
   }
 
   function initLang() {
-    try {
-      const saved = localStorage.getItem(LANG_KEY);
-      if (saved === "en" || saved === "sk") currentLang = saved;
-      const settings = localStorage.getItem("chodza-settings");
-      if (settings) {
-        const s = JSON.parse(settings);
-        if (s.lang === "en" || s.lang === "sk") currentLang = s.lang;
-      }
-    } catch (_) {}
+    const scope = getScope();
+    currentLang = readStoredLang(scope) || "sk";
     document.documentElement.lang = currentLang;
   }
 
@@ -327,7 +386,10 @@
       el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"), null, el.getAttribute("data-i18n-ns") === "admin" ? "admin" : null));
     });
     const titleEl = document.querySelector("title[data-i18n]");
-    if (titleEl) document.title = t(titleEl.getAttribute("data-i18n"), null, "admin");
+    if (titleEl) {
+      const titleNs = titleEl.getAttribute("data-i18n-ns") === "admin" || getScope() === "admin" ? "admin" : null;
+      document.title = t(titleEl.getAttribute("data-i18n"), null, titleNs);
+    }
     const meta = document.querySelector('meta[name="description"][data-i18n]');
     if (meta) meta.content = t(meta.getAttribute("data-i18n"));
   }
@@ -337,8 +399,11 @@
   }
 
   root.ChodzaI18n = {
-    LANG_KEY,
+    LANG_KEY_APP,
+    LANG_KEY_ADMIN,
+    LANG_KEY_LEGACY,
     SUBSCRIPTION_PRICE,
+    getScope,
     getLang,
     getLocale,
     setLang,

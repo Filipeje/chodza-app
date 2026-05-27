@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sk">
+<html lang="sk" data-i18n-scope="app">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -47,7 +47,30 @@
               </div>
             </div>
             <p class="ring-card__status" id="goal-status"></p>
+            <p class="health-sync-status health-sync-status--off" id="health-sync-status"></p>
             <button type="button" class="btn btn--ghost" id="sync-btn" data-i18n="ring.sync">Aktualizovať km</button>
+          </div>
+
+          <div class="plan-notice plan-notice--free" id="plan-free-notice" hidden>
+            <p>
+              Máš balík <strong>Free</strong>: body za km sa počítajú, ale
+              <strong>nie si v mesačnom žrebovaní</strong> a nemôžeš vyhrať.
+            </p>
+            <div class="plan-notice__actions">
+              <button type="button" class="plan-upgrade-btn plan-upgrade-btn--basic" data-plan-change="basic">
+                4,99 €
+              </button>
+              <button type="button" class="plan-upgrade-btn plan-upgrade-btn--plus" data-plan-change="plus">
+                7,99 €
+              </button>
+            </div>
+          </div>
+
+          <div class="plan-notice plan-notice--plus" id="plan-plus-notice" hidden>
+            <p>
+              Balík <strong>Plus</strong>: získavaš <strong>2× viac bodov</strong> za rovnaké kilometre a si v žrebovaní.
+              Pity násobič 1,5× pri prehre je rovnaký ako pri balíku za 4,99 €.
+            </p>
           </div>
 
           <div class="draw-countdown" id="draw-countdown" aria-live="polite">
@@ -118,18 +141,18 @@
           </section>
         </section>
 
-        <section class="panel" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
-          <div class="points-head">
-            <p class="points-head__month" id="tickets-month">máj 2026</p>
-            <p class="points-head__total">
-              <span class="points-head__count" id="tickets-count">0</span>
-              <span id="tickets-count-label" data-i18n="tickets.labelMonthMany">bodov tento mesiac</span>
+        <section class="panel panel--tickets" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
+          <div class="points-hero">
+            <p class="points-hero__month" id="tickets-month">máj 2026</p>
+            <p class="points-hero__total">
+              <span class="points-hero__count" id="tickets-count">0</span>
+              <span class="points-hero__label" id="tickets-count-label" data-i18n="tickets.labelMonthMany">bodov tento mesiac</span>
             </p>
           </div>
 
-          <div class="points-month" id="ticket-list"></div>
+          <div class="points-calendar" id="ticket-list"></div>
 
-          <p class="hint" id="tickets-points-hint"></p>
+          <p class="hint points-hint" id="tickets-points-hint" hidden></p>
         </section>
 
         <section class="panel" id="panel-winners" aria-labelledby="nav-winners" hidden>
@@ -145,15 +168,25 @@
 
         <section class="panel" id="panel-profile" aria-labelledby="nav-profile" hidden>
           <div class="profile-card">
-            <div class="avatar" aria-hidden="true">S</div>
+            <div class="avatar" id="user-avatar" aria-hidden="true">?</div>
             <div>
-              <p class="profile-card__name" id="user-name">Synko</p>
-              <p class="profile-card__email" id="user-email">synko@example.sk</p>
-              <span class="badge badge--free" id="sub-badge" data-i18n="profile.subInactive">Bez predplatného</span>
+              <p class="profile-card__name" id="user-name">—</p>
+              <p class="profile-card__nick" id="user-nick"></p>
+              <p class="profile-card__email" id="user-email">—</p>
+              <p class="profile-card__city" id="user-city"></p>
             </div>
           </div>
 
           <ul class="settings-list">
+            <li>
+              <div class="setting setting--plan">
+                <span>Balík</span>
+                <div class="setting__plan-col">
+                  <span class="setting__value setting__value--plan" id="profile-plan-summary">Free · 0 €</span>
+                  <span class="plan-chips" id="profile-plan-changes"></span>
+                </div>
+              </div>
+            </li>
             <li>
               <div class="setting setting--readonly setting--goal">
                 <span data-i18n="profile.dailyGoal">Denný cieľ</span>
@@ -173,10 +206,20 @@
               </label>
             </li>
             <li>
+              <div class="setting setting--stacked">
+                <span data-i18n="profile.health">Zdravie (kroky / km)</span>
+                <p class="health-sync-status health-sync-status--profile" id="health-profile-status"></p>
+                <button type="button" class="btn btn--ghost btn--sm" id="btn-health-connect" data-i18n="health.connect">
+                  Prepojiť Apple / Google Health
+                </button>
+              </div>
+            </li>
+            <li>
               <label class="setting setting--toggle">
                 <span data-i18n="profile.notify">Notifikácie</span>
                 <input type="checkbox" id="setting-notify" checked />
               </label>
+              <p class="hint hint--notify" data-i18n="profile.notifyHint"></p>
             </li>
             <li>
               <label class="setting setting--toggle">
@@ -184,9 +227,20 @@
                 <input type="checkbox" id="setting-dark" />
               </label>
             </li>
+            <li>
+              <label class="setting setting--iban">
+                <span>IBAN (odmeny)</span>
+                <div class="setting__iban-wrap">
+                  <input type="text" id="profile-iban" class="setting__input" placeholder="SK00 0000 0000 …" spellcheck="false" autocomplete="off" />
+                  <span class="setting__iban-status" id="iban-save-status" aria-live="polite"></span>
+                </div>
+              </label>
+              <p class="hint hint--iban">Uloží sa automaticky, keď opustíš pole (klik mimo alebo Tab). Medzery sa odstránia.</p>
+            </li>
           </ul>
 
-          <button type="button" class="btn btn--primary btn--block" id="upgrade-btn"></button>
+          <button type="button" class="btn btn--ghost btn--block" id="btn-logout">Odhlásiť sa</button>
+
           <p class="hint hint--center" data-i18n="profile.hint"></p>
           <p class="hint hint--center"><a href="admin.html" data-i18n="profile.admin">Administrácia</a></p>
         </section>
@@ -259,8 +313,12 @@
       </div>
     </div>
 
+    <script src="scripts/subscription-plans.js"></script>
+    <script src="scripts/draw-core.js?v=2"></script>
+    <script src="scripts/auth-store.js?v=3"></script>
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
-    <script src="app.js?v=3"></script>
+    <script src="scripts/health-sync.js?v=2"></script>
+    <script src="app.js?v=10"></script>
   </body>
 </html>

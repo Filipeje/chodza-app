@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a1209" />
+    <meta
+      name="description"
+      content="Chôdza – slovenská fitness aplikácia. Premeň kroky na reálne odmeny."
+    />
+    <title>Chôdza – Registrácia</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="welcome.css" />
+  </head>
+  <body>
+    <div class="welcome-page">
+      <header class="welcome-hero">
+        <div class="welcome-logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" stroke="#5cff6a" stroke-width="2" opacity="0.4" />
+            <path
+              d="M22 42c4-14 12-22 20-26M28 38l6-18 8 6-4 14"
+              stroke="#7dff88"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="44" cy="18" r="4" fill="#5cff6a" />
+          </svg>
+        </div>
+        <span class="welcome-logo__name">CHÔDZA</span>
+        <h1 class="welcome-slogan">Premeň svoje kroky na reálne odmeny!</h1>
+        <p class="welcome-sub">
+          Slovenská fitness aplikácia, ktorá ťa dostane do formy a vráti ti peniaze za tvoj poctivý výkon.
+        </p>
+      </header>
+
+      <form class="welcome-form" id="register-form" novalidate>
+        <section class="welcome-section" aria-labelledby="sec-personal">
+          <h2 class="welcome-section__title" id="sec-personal">Osobné údaje</h2>
+
+          <div class="field__row">
+            <div class="field">
+              <label class="field__label" for="first-name">Meno</label>
+              <input class="field__input" id="first-name" name="firstName" type="text" autocomplete="given-name" required />
+              <p class="field__error" id="err-first-name"></p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="last-name">Priezvisko</label>
+              <input class="field__input" id="last-name" name="lastName" type="text" autocomplete="family-name" required />
+              <p class="field__error" id="err-last-name"></p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="username">Používateľské meno (Nick)</label>
+            <input
+              class="field__input"
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              required
+              minlength="3"
+              maxlength="24"
+              pattern="[a-zA-Z0-9_\.\-]+"
+              title="3–24 znakov: písmená, čísla, _ . -"
+            />
+            <p class="field__hint">Jedinečné meno v celoslovenskom rebríčku a zozname odmenených.</p>
+            <p class="field__error" id="err-username"></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="email">E-mailová adresa</label>
+            <input class="field__input" id="email" name="email" type="email" autocomplete="email" required />
+            <p class="field__error" id="err-email"></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password">Heslo</label>
+            <div class="field__pw-wrap">
+              <input
+                class="field__input"
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength="8"
+              />
+              <button type="button" class="field__pw-toggle" data-pw-toggle="password" aria-label="Zobraziť heslo">
+                👁
+              </button>
+            </div>
+            <p class="field__error" id="err-password"></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password-confirm">Potvrdenie hesla</label>
+            <div class="field__pw-wrap">
+              <input
+                class="field__input"
+                id="password-confirm"
+                name="passwordConfirm"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength="8"
+              />
+              <button
+                type="button"
+                class="field__pw-toggle"
+                data-pw-toggle="password-confirm"
+                aria-label="Zobraziť heslo"
+              >
+                👁
+              </button>
+            </div>
+            <p class="field__error" id="err-password-confirm"></p>
+          </div>
+        </section>
+
+        <section class="welcome-section" aria-labelledby="sec-plans">
+          <h2 class="welcome-section__title" id="sec-plans">Vyber si balík</h2>
+          <p class="plans-intro">Free je na skúšku bez výhier. Platené balíky ťa zapoja do mesačného žrebovania.</p>
+
+          <fieldset class="plan-picker" id="plan-picker">
+            <legend class="visually-hidden">Balík predplatného</legend>
+
+            <label class="plan-card plan-card--free">
+              <input type="radio" name="subscriptionPlan" value="free" />
+              <span class="plan-card__inner">
+                <span class="plan-card__badge">Free</span>
+                <strong class="plan-card__price">0 €</strong>
+                <span class="plan-card__per">navždy zadarmo</span>
+                <ul class="plan-card__features">
+                  <li>Body za km (podľa nastavenia admina)</li>
+                  <li>Bledé prostredie aplikácie</li>
+                  <li class="plan-card__warn">Bez účasti v žrebovaní</li>
+                </ul>
+              </span>
+            </label>
+
+            <label class="plan-card plan-card--basic">
+              <input type="radio" name="subscriptionPlan" value="basic" checked />
+              <span class="plan-card__inner">
+                <span class="plan-card__badge">Chôdza</span>
+                <strong class="plan-card__price">4,99 €</strong>
+                <span class="plan-card__per">/ mesiac</span>
+                <ul class="plan-card__features">
+                  <li>Účasť v žrebovaní o odmeny</li>
+                  <li>Pity násobič 1,5× pri prehre</li>
+                  <li>Šedé prostredie aplikácie</li>
+                </ul>
+              </span>
+            </label>
+
+            <label class="plan-card plan-card--plus">
+              <input type="radio" name="subscriptionPlan" value="plus" />
+              <span class="plan-card__inner">
+                <span class="plan-card__badge">Chôdza Plus</span>
+                <strong class="plan-card__price">7,99 €</strong>
+                <span class="plan-card__per">/ mesiac</span>
+                <ul class="plan-card__features">
+                  <li><strong>2× viac bodov</strong> za rovnaké km</li>
+                  <li>Účasť v žrebovaní + pity 1,5×</li>
+                  <li>Tmavé prémiové prostredie</li>
+                </ul>
+              </span>
+            </label>
+          </fieldset>
+          <p class="field__error" id="err-plan"></p>
+        </section>
+
+        <section class="welcome-section" aria-labelledby="sec-local">
+          <h2 class="welcome-section__title" id="sec-local">Lokálne a finančné údaje</h2>
+
+          <div class="field">
+            <label class="field__label field__label--optional" for="city">Mesto / Obec</label>
+            <input
+              class="field__input"
+              id="city"
+              name="city"
+              type="text"
+              autocomplete="address-level2"
+              placeholder="napr. Topoľčany, Nitra, Košice"
+            />
+          </div>
+
+          <div class="field">
+            <label class="field__label field__label--optional" for="iban">IBAN</label>
+            <p class="field__hint field__hint--iban">
+              📝 Zadaj svoj IBAN, aby ti systém mohol po skončení mesiaca automaticky poslať tvoju zaslúženú odmenu
+              priamo na bankový účet. Ak ho nechceš zadať teraz, nevadí – môžeš ho kedykoľvek bezpečne doplniť neskôr
+              vo svojom profile.
+            </p>
+            <input
+              class="field__input"
+              id="iban"
+              name="iban"
+              type="text"
+              autocomplete="off"
+              placeholder="SK00 0000 0000 0000 0000 0000"
+              spellcheck="false"
+            />
+            <p class="field__error" id="err-iban"></p>
+          </div>
+        </section>
+
+        <section class="welcome-section" aria-labelledby="sec-tech">
+          <h2 class="welcome-section__title" id="sec-tech">Technické prepojenie</h2>
+
+          <p class="health-connect__intro">Odporúčané – km sa potom aktualizujú automaticky každú hodinu.</p>
+
+          <button type="button" class="btn-health-connect" id="btn-health" aria-pressed="false">
+            🍎 Prepojiť Apple Health / Google Health Connect
+          </button>
+          <p class="health-connect__hint" id="health-connect-hint">
+            Jedným kliknutím povolíš čítanie denných km. App nebeží na pozadí a nevybíja batériu.
+          </p>
+          <p class="health-connect__done" id="btn-health-done" hidden>✓ Prepojené – km sa budú aktualizovať automaticky</p>
+        </section>
+
+        <section class="welcome-section welcome-section--legal" aria-labelledby="sec-legal">
+          <h2 class="welcome-section__title" id="sec-legal">Právne súhlasy</h2>
+
+          <label class="gdpr">
+            <input type="checkbox" id="gdpr" name="gdpr" required />
+            <span>
+              Súhlasím so
+              <a href="#" id="link-vop">Všeobecnými obchodnými podmienkami</a>
+              a
+              <a href="#" id="link-gdpr">spracovaním osobných údajov (GDPR)</a>
+              pre účely vyplácania odmien.
+            </span>
+          </label>
+          <p class="field__error" id="err-gdpr"></p>
+        </section>
+
+        <div class="welcome-cta">
+          <button type="submit" class="btn-cta" id="btn-register">🚀 Zaregistrovať sa a poď si po odmenu</button>
+          <p class="welcome-login-link">
+            Už máš účet? <a href="login.html">Prihlás sa</a>
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <div class="welcome-toast" id="toast" role="alert" aria-live="assertive" hidden></div>
+
+    <script src="scripts/subscription-plans.js"></script>
+    <script src="scripts/auth-store.js?v=3"></script>
+    <script src="welcome.js?v=3"></script>
+  </body>
+</html>

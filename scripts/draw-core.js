@@ -1,6 +1,5 @@
 /**
- * Žrebovanie – pity timer (streak_of_loss × 1.5^n), osudie podľa virtual_points.
- * Zrkadlo logiky z utils/drawBasket.ts pre admin / prehliadač.
+ * Žrebovanie z osudia + TOP makači (km) + rozdelenie odmien (percent / manuál).
  */
 (function (root) {
   const DRAW_CONFIG = {
@@ -8,9 +7,18 @@
     mainCount: 3,
     smallCount: 97,
     pityBase: 1.5,
-    revenueSplit: { owner: 0.45, first: 0.15, second: 0.1, third: 0.06, small: 0.24 },
-    manualPoolSplit: { first: 15 / 55, second: 10 / 55, third: 6 / 55, small: 24 / 55 },
   };
+
+  const PRIZE_PERCENT = {
+    owner: 0.45,
+    drawFirst: 0.15,
+    drawSecond: 0.1,
+    drawThird: 0.06,
+    walkersPool: 0.04,
+    smallPool: 0.2,
+  };
+
+  const WALKER_SHARE = { 1: 0.5, 2: 0.3, 3: 0.2 };
 
   function computeVirtualPoints(monthly_points, streak_of_loss) {
     if (monthly_points <= 0) return 0;
@@ -55,48 +63,157 @@
     return winners;
   }
 
-  function calculatePrizeAmounts(options) {
-    const manualPrizePool = options.manualPrizePool;
-    const payingUsers = options.payingUsers ?? 0;
-    const priceMonthly = options.priceMonthly ?? 4.99;
-    const { revenueSplit, manualPoolSplit, smallCount } = DRAW_CONFIG;
-
-    if (manualPrizePool != null && manualPrizePool > 0) {
-      const pool = manualPrizePool;
-      const smallTotal = pool * manualPoolSplit.small;
-      return {
-        source: "manual",
-        manualPool: pool,
-        ownerAmount: 0,
-        firstPrize: pool * manualPoolSplit.first,
-        secondPrize: pool * manualPoolSplit.second,
-        thirdPrize: pool * manualPoolSplit.third,
-        smallPrizeEach: smallTotal / smallCount,
-        poolAmount: pool,
-        mainCount: DRAW_CONFIG.mainCount,
-        smallCount: DRAW_CONFIG.smallCount,
-      };
-    }
-
-    const revenue = payingUsers * priceMonthly;
-    const smallTotal = revenue * revenueSplit.small;
+  function normalizeSettings(settings) {
+    const s = settings || {};
+    const prizeMode = s.prizeMode === "manual" ? "manual" : "percent";
+    const mp = s.manualPrizes || {};
     return {
-      source: "revenue",
-      revenue,
-      ownerAmount: revenue * revenueSplit.owner,
-      firstPrize: revenue * revenueSplit.first,
-      secondPrize: revenue * revenueSplit.second,
-      thirdPrize: revenue * revenueSplit.third,
-      smallPrizeEach: smallTotal / smallCount,
-      poolAmount: revenue * (1 - revenueSplit.owner),
-      mainCount: DRAW_CONFIG.mainCount,
+      prizeMode,
+      totalFundEur: Number(s.totalFundEur ?? s.prizePoolEur ?? 0) || 0,
+      manualPrizes: {
+        drawFirst: Number(mp.drawFirst) || 0,
+        drawSecond: Number(mp.drawSecond) || 0,
+        drawThird: Number(mp.drawThird) || 0,
+        smallEach: Number(mp.smallEach) || 0,
+        walkerFirst: Number(mp.walkerFirst) || 0,
+        walkerSecond: Number(mp.walkerSecond) || 0,
+        walkerThird: Number(mp.walkerThird) || 0,
+      },
+    };
+  }
+
+  function calculatePrizesFromPercent(totalFund) {
+    const fund = Math.max(0, Number(totalFund) || 0);
+    const walkersPool = fund * PRIZE_PERCENT.walkersPool;
+    return {
+      source: "percent",
+      prizeMode: "percent",
+      totalFundEur: fund,
+      ownerAmount: fund * PRIZE_PERCENT.owner,
+      drawFirst: fund * PRIZE_PERCENT.drawFirst,
+      drawSecond: fund * PRIZE_PERCENT.drawSecond,
+      drawThird: fund * PRIZE_PERCENT.drawThird,
+      smallEach: fund > 0 ? (fund * PRIZE_PERCENT.smallPool) / DRAW_CONFIG.smallCount : 0,
+      walkerFirst: walkersPool * WALKER_SHARE[1],
+      walkerSecond: walkersPool * WALKER_SHARE[2],
+      walkerThird: walkersPool * WALKER_SHARE[3],
+      walkersPool,
+      reserveAmount: 0,
       smallCount: DRAW_CONFIG.smallCount,
     };
   }
 
-  /** @deprecated použite calculatePrizeAmounts */
-  function calculatePrizesFromPool(poolEur) {
-    return calculatePrizeAmounts({ manualPrizePool: poolEur });
+  function calculatePrizesFromManual(mp) {
+    const smallTotal = (Number(mp.smallEach) || 0) * DRAW_CONFIG.smallCount;
+    const prizesPaid =
+      (Number(mp.drawFirst) || 0) +
+      (Number(mp.drawSecond) || 0) +
+      (Number(mp.drawThird) || 0) +
+      smallTotal +
+      (Number(mp.walkerFirst) || 0) +
+      (Number(mp.walkerSecond) || 0) +
+      (Number(mp.walkerThird) || 0);
+    return {
+      source: "manual",
+      prizeMode: "manual",
+      totalFundEur: prizesPaid,
+      ownerAmount: 0,
+      drawFirst: Number(mp.drawFirst) || 0,
+      drawSecond: Number(mp.drawSecond) || 0,
+      drawThird: Number(mp.drawThird) || 0,
+      smallEach: Number(mp.smallEach) || 0,
+      walkerFirst: Number(mp.walkerFirst) || 0,
+      walkerSecond: Number(mp.walkerSecond) || 0,
+      walkerThird: Number(mp.walkerThird) || 0,
+      walkersPool:
+        (Number(mp.walkerFirst) || 0) +
+        (Number(mp.walkerSecond) || 0) +
+        (Number(mp.walkerThird) || 0),
+      reserveAmount: 0,
+      smallCount: DRAW_CONFIG.smallCount,
+    };
+  }
+
+  /** @param {function} [getUserPlan] (user) => 'free'|'basic'|'plus' */
+  function resolvePrizeConfig(settings, users, getUserPlan) {
+    const norm = normalizeSettings(settings);
+    if (norm.prizeMode === "manual") {
+      return calculatePrizesFromManual(norm.manualPrizes);
+    }
+    if (norm.totalFundEur > 0) {
+      return calculatePrizesFromPercent(norm.totalFundEur);
+    }
+    let revenue = 0;
+    if (users && typeof root.ChodzaPlans !== "undefined") {
+      revenue = root.ChodzaPlans.monthlyRevenueFromUsers(users);
+    }
+    if (revenue > 0) {
+      return calculatePrizesFromPercent(revenue);
+    }
+    return calculatePrizesFromPercent(0);
+  }
+
+  function sumUserKmForMonth(user, monthKey) {
+    const prefix = monthKey + "-";
+    return (user.dailyWalks || [])
+      .filter((d) => String(d.datum || "").startsWith(prefix))
+      .reduce((s, d) => s + (Number(d.kilometre) || 0), 0);
+  }
+
+  function rankTopWalkers(users, monthKey, prizes, getUserPlan) {
+    const planFn =
+      getUserPlan ||
+      ((u) =>
+        u.subscriptionPlan === "plus" || u.subscriptionPlan === "basic"
+          ? u.subscriptionPlan
+          : u.status_predplatneho === "premium"
+            ? "basic"
+            : "free");
+
+    const amounts = [prizes.walkerFirst, prizes.walkerSecond, prizes.walkerThird];
+    const ranked = (users || [])
+      .map((u) => ({
+        userId: u.id,
+        nick: u.meno || u.username || u.email,
+        km: Math.round(sumUserKmForMonth(u, monthKey) * 10) / 10,
+        plan: planFn(u),
+      }))
+      .filter((x) => x.km > 0)
+      .sort((a, b) => b.km - a.km)
+      .slice(0, 3);
+
+    let reserveAmount = 0;
+    const walkers = ranked.map((r, i) => {
+      const place = i + 1;
+      const cashAmount = amounts[i] ?? 0;
+      if (r.plan === "free") {
+        reserveAmount += cashAmount;
+        return {
+          userId: r.userId,
+          nick: r.nick,
+          km: r.km,
+          place,
+          plan: r.plan,
+          prizeEur: 0,
+          prizeType: "premium_month",
+          prizeLabel: "PREMIUM členstvo na ďalší mesiac zadarmo",
+          forfeitedEur: cashAmount,
+        };
+      }
+      return {
+        userId: r.userId,
+        nick: r.nick,
+        km: r.km,
+        place,
+        plan: r.plan,
+        prizeEur: cashAmount,
+        prizeType: "cash",
+        prizeLabel: null,
+        forfeitedEur: 0,
+      };
+    });
+
+    return { walkers, reserveAmount };
   }
 
   function computeStreakUpdates(participants, winnerIds) {
@@ -111,10 +228,7 @@
     });
   }
 
-  /**
-   * @param {object[]} participants – { userId, nick?, monthly_points, streak_of_loss }
-   */
-  function runMonthlyDraw(participants, monthKey, manualPrizePool, options) {
+  function runMonthlyDraw(participants, monthKey, prizes, options) {
     const opts = options || {};
     const active = participants
       .map((p) => ({
@@ -125,19 +239,13 @@
       }))
       .filter((p) => p.monthly_points > 0);
 
-    const prizes = calculatePrizeAmounts({
-      manualPrizePool: manualPrizePool,
-      payingUsers: opts.payingUsers,
-      priceMonthly: opts.priceMonthly,
-    });
-
+    const mainPrizes = [prizes.drawFirst, prizes.drawSecond, prizes.drawThird];
     const basket = buildDrawBasket(active);
     const byId = new Map(active.map((p) => [p.userId, p]));
     const uniquePlayers = active.length;
     const drawCount = Math.min(DRAW_CONFIG.winnerCount, uniquePlayers);
     const winnerIds = drawUniqueWinnersFromBasket(basket, drawCount, opts.rng);
 
-    const mainPrizes = [prizes.firstPrize, prizes.secondPrize, prizes.thirdPrize];
     const winners = winnerIds.map((userId, i) => {
       const p = byId.get(userId);
       const vp = computeVirtualPoints(p.monthly_points, p.streak_of_loss);
@@ -148,7 +256,7 @@
         nick: p.nick,
         place,
         type,
-        prizeEur: type === "main" ? mainPrizes[place - 1] : prizes.smallPrizeEach,
+        prizeEur: type === "main" ? mainPrizes[place - 1] : prizes.smallEach,
         monthly_points: p.monthly_points,
         streak_of_loss: p.streak_of_loss,
         virtual_points: vp,
@@ -177,16 +285,65 @@
     };
   }
 
+  /** Kompletné uzatvorenie mesiaca: osudie + makači */
+  function runMonthlyClose(params) {
+    const { participants, allUsers, monthKey, settings, getUserPlan, options } = params;
+    const prizes = resolvePrizeConfig(settings, allUsers, getUserPlan);
+    const walkerResult = rankTopWalkers(allUsers, monthKey, prizes, getUserPlan);
+    prizes.reserveAmount = (prizes.reserveAmount || 0) + walkerResult.reserveAmount;
+    prizes.ownerAmount = (prizes.ownerAmount || 0) + walkerResult.reserveAmount;
+
+    const draw = runMonthlyDraw(participants, monthKey, prizes, options);
+
+    return {
+      draw,
+      walkers: walkerResult.walkers,
+      prizes,
+      prizeMode: normalizeSettings(settings).prizeMode,
+    };
+  }
+
+  /** @deprecated – starý výpočet z tržieb */
+  function calculatePrizeAmounts(options) {
+    const total =
+      options.manualPrizePool != null && options.manualPrizePool > 0
+        ? options.manualPrizePool
+        : options.revenue != null
+          ? options.revenue
+          : (options.payingUsers ?? 0) * (options.priceMonthly ?? 4.99);
+    const p = calculatePrizesFromPercent(total);
+    return {
+      source: p.source,
+      revenue: total,
+      ownerAmount: p.ownerAmount,
+      firstPrize: p.drawFirst,
+      secondPrize: p.drawSecond,
+      thirdPrize: p.drawThird,
+      smallPrizeEach: p.smallEach,
+      poolAmount: total - p.ownerAmount,
+      mainCount: DRAW_CONFIG.mainCount,
+      smallCount: DRAW_CONFIG.smallCount,
+    };
+  }
+
   const api = {
     DRAW_CONFIG,
+    PRIZE_PERCENT,
+    WALKER_SHARE,
     computeVirtualPoints,
     basketTicketCount,
     buildDrawBasket,
     drawUniqueWinnersFromBasket,
-    calculatePrizeAmounts,
-    calculatePrizesFromPool,
+    normalizeSettings,
+    calculatePrizesFromPercent,
+    calculatePrizesFromManual,
+    resolvePrizeConfig,
+    sumUserKmForMonth,
+    rankTopWalkers,
     computeStreakUpdates,
     runMonthlyDraw,
+    runMonthlyClose,
+    calculatePrizeAmounts,
   };
 
   if (typeof module !== "undefined" && module.exports) {

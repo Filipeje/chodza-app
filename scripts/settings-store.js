@@ -108,27 +108,62 @@
         fromHash?.prizePoolEur,
         fromBridge?.prizePoolEur,
         active?.prizePoolEur,
-        month?.prizePoolEur
+        month?.prizePoolEur,
+        active?.totalFundEur,
+        month?.totalFundEur
       ) ?? 0;
+
+    const totalFundEur =
+      pickNonNegative(active?.totalFundEur, month?.totalFundEur, prizePoolEur) ?? prizePoolEur;
+
+    const prizeMode =
+      active?.prizeMode === "manual" || month?.prizeMode === "manual" ? "manual" : "percent";
+
+    const manualPrizes = {
+      drawFirst: 0,
+      drawSecond: 0,
+      drawThird: 0,
+      smallEach: 0,
+      walkerFirst: 0,
+      walkerSecond: 0,
+      walkerThird: 0,
+      ...(month?.manualPrizes || {}),
+      ...(active?.manualPrizes || {}),
+    };
 
     return {
       monthKey: key,
       goalType: fromBridge?.goalType || active?.goalType || month?.goalType || "walk_km",
       goalKmPerPoint,
       maxPointsPerDay,
-      prizePoolEur,
+      prizePoolEur: totalFundEur,
+      totalFundEur,
+      prizeMode,
+      manualPrizes,
       updatedAt: fromBridge?.updatedAt || active?.updatedAt || month?.updatedAt || null,
     };
   }
 
   function write(monthKey, payload) {
     const key = monthKey || currentMonthKey();
+    const totalFundEur = Number(payload.totalFundEur ?? payload.prizePoolEur) || 0;
     const data = {
       monthKey: key,
       goalType: payload.goalType || "walk_km",
       goalKmPerPoint: Number(payload.goalKmPerPoint),
       maxPointsPerDay: Number(payload.maxPointsPerDay) || 3,
-      prizePoolEur: Number(payload.prizePoolEur) || 0,
+      prizePoolEur: totalFundEur,
+      totalFundEur,
+      prizeMode: payload.prizeMode === "manual" ? "manual" : "percent",
+      manualPrizes: {
+        drawFirst: Number(payload.manualPrizes?.drawFirst) || 0,
+        drawSecond: Number(payload.manualPrizes?.drawSecond) || 0,
+        drawThird: Number(payload.manualPrizes?.drawThird) || 0,
+        smallEach: Number(payload.manualPrizes?.smallEach) || 0,
+        walkerFirst: Number(payload.manualPrizes?.walkerFirst) || 0,
+        walkerSecond: Number(payload.manualPrizes?.walkerSecond) || 0,
+        walkerThird: Number(payload.manualPrizes?.walkerThird) || 0,
+      },
       updatedAt: new Date().toISOString(),
     };
 

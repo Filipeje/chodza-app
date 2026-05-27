@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sk">
+<html lang="sk" data-i18n-scope="admin" class="admin-page">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -49,34 +49,78 @@
         </header>
 
         <main class="admin-content">
-          <section class="admin-card" id="settings">
+          <section class="admin-summary" aria-label="Prehľad">
+            <a href="#settings" class="admin-summary-card" data-admin-section="settings">
+              <span class="admin-summary-card__icon" aria-hidden="true">⚙️</span>
+              <span class="admin-summary-card__label" data-i18n="admin.nav.settings" data-i18n-ns="admin">Mesačné nastavenia</span>
+              <strong class="admin-summary-card__value" id="summary-settings-value">—</strong>
+              <span class="admin-summary-card__meta" id="summary-settings-meta"></span>
+            </a>
+            <a href="#users" class="admin-summary-card" data-admin-section="users">
+              <span class="admin-summary-card__icon" aria-hidden="true">👥</span>
+              <span class="admin-summary-card__label" data-i18n="admin.nav.users" data-i18n-ns="admin">Používatelia</span>
+              <strong class="admin-summary-card__value" id="summary-users-value">—</strong>
+              <span class="admin-summary-card__meta" id="summary-users-meta"></span>
+            </a>
+            <a href="#draw" class="admin-summary-card" data-admin-section="draw">
+              <span class="admin-summary-card__icon" aria-hidden="true">🎲</span>
+              <span class="admin-summary-card__label" data-i18n="admin.nav.draw" data-i18n-ns="admin">Uzatvorenie mesiaca</span>
+              <strong class="admin-summary-card__value" id="summary-draw-value">—</strong>
+              <span class="admin-summary-card__meta" id="summary-draw-meta"></span>
+            </a>
+          </section>
+
+          <section class="admin-card admin-section" id="settings">
             <div class="admin-card__head">
               <h2 data-i18n="admin.monthSettings" data-i18n-ns="admin">Správa aktuálneho mesiaca</h2>
               <p class="admin-card__desc" data-i18n="admin.monthDesc" data-i18n-ns="admin">Globálne nastavenia platné pre všetkých používateľov v tomto mesiaci.</p>
             </div>
             <form class="admin-form" id="month-settings-form" novalidate>
               <div class="admin-form__grid">
-                <fieldset class="admin-fieldset">
-                  <legend data-i18n="admin.prizeLegend" data-i18n-ns="admin">Finančný mesačný kôš</legend>
-                  <label class="admin-label" for="prize-pool-eur" data-i18n="admin.prizeLabel" data-i18n-ns="admin">Výška finančnej výhry (€)</label>
-                  <div class="admin-input-wrap">
-                    <input
-                      type="number"
-                      id="prize-pool-eur"
-                      name="prizePoolEur"
-                      min="0"
-                      step="0.01"
-                      data-i18n-placeholder="admin.prizePlaceholder"
-                      data-i18n-ns="admin"
-                    />
-                    <span class="admin-input-suffix">€</span>
-                  </div>
-                  <p class="admin-hint" data-i18n="admin.prizeHint" data-i18n-ns="admin" data-i18n-dynamic="prize-hint"></p>
-                </fieldset>
+                <fieldset class="admin-fieldset admin-fieldset--prizes">
+                  <legend>Odmeňovanie – režim a sumy</legend>
 
-                <fieldset class="admin-fieldset admin-fieldset--revenue" id="revenue-fieldset">
-                  <legend data-i18n="admin.revenueLegend" data-i18n-ns="admin">Tržby z predplatného (náhľad)</legend>
-                  <div id="revenue-preview" class="revenue-preview" aria-live="polite"></div>
+                  <div class="prize-mode-toggle" role="radiogroup" aria-label="Režim odmien">
+                    <label class="prize-mode-toggle__opt">
+                      <input type="radio" name="prizeMode" value="percent" checked />
+                      <span>A – Automaticky (%)</span>
+                    </label>
+                    <label class="prize-mode-toggle__opt">
+                      <input type="radio" name="prizeMode" value="manual" />
+                      <span>B – Manuálne sumy</span>
+                    </label>
+                  </div>
+
+                  <div id="prize-mode-percent" class="prize-mode-panel">
+                    <label class="admin-label" for="total-fund-eur">Celková suma fondu (€)</label>
+                    <div class="admin-input-wrap">
+                      <input type="number" id="total-fund-eur" min="0" step="0.01" placeholder="napr. 500" />
+                      <span class="admin-input-suffix">€</span>
+                    </div>
+                    <p class="admin-hint">Rozdelenie: 45 % prevádzka · 15/10/6 % osudie · 4 % TOP 3 makači (50/30/20) · 20 % ÷ 97 osudie</p>
+                  </div>
+
+                  <div id="prize-mode-manual" class="prize-mode-panel" hidden>
+                    <div class="manual-prize-grid">
+                      <label class="admin-label" for="mp-draw-first">1. miesto z osudia (€)</label>
+                      <input type="number" id="mp-draw-first" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-draw-second">2. miesto z osudia (€)</label>
+                      <input type="number" id="mp-draw-second" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-draw-third">3. miesto z osudia (€)</label>
+                      <input type="number" id="mp-draw-third" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-small-each">Odmena pre 1 z 97 (€ / osoba)</label>
+                      <input type="number" id="mp-small-each" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-walker-first">1. najväčší makač (€)</label>
+                      <input type="number" id="mp-walker-first" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-walker-second">2. najväčší makač (€)</label>
+                      <input type="number" id="mp-walker-second" min="0" step="0.01" />
+                      <label class="admin-label" for="mp-walker-third">3. najväčší makač (€)</label>
+                      <input type="number" id="mp-walker-third" min="0" step="0.01" />
+                    </div>
+                    <p class="admin-hint">FREE makač nedostane hotovosť – vyhrá PREMIUM na ďalší mesiac, suma ide do rezervy.</p>
+                  </div>
+
+                  <div id="revenue-preview" class="revenue-preview revenue-preview--split" aria-live="polite"></div>
                 </fieldset>
 
                 <fieldset class="admin-fieldset">
@@ -101,7 +145,14 @@
             </form>
           </section>
 
-          <section class="admin-card" id="users">
+          <section class="admin-card admin-section" id="users">
+            <div class="admin-registrations-alert" id="registrations-alert" hidden role="status" aria-live="polite">
+              <div class="admin-registrations-alert__text" id="registrations-alert-text"></div>
+              <button type="button" class="btn btn--ghost btn--sm" id="btn-mark-registrations-seen">
+                Označiť ako prečítané
+              </button>
+            </div>
+
             <div class="admin-card__head admin-card__head--row">
               <div>
                 <h2 data-i18n="admin.users" data-i18n-ns="admin">Používatelia</h2>
@@ -117,8 +168,9 @@
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Meno</th>
+                    <th>Meno / Nick</th>
                     <th>E-mail</th>
+                    <th>Registrácia</th>
                     <th>Predplatné</th>
                     <th>Body (mesiac)</th>
                     <th>Level</th>
@@ -132,7 +184,7 @@
             </div>
           </section>
 
-          <section class="admin-card" id="draw">
+          <section class="admin-card admin-section" id="draw">
             <div class="admin-card__head">
               <h2 data-i18n="admin.drawTitle" data-i18n-ns="admin">Simulácia uzatvorenia mesiaca</h2>
               <p class="admin-card__desc" data-i18n="admin.drawDesc" data-i18n-ns="admin">Spustí žrebovanie (3 hlavné + 97 menších), pity timer 1.5^n a vynuluje mesačné body.</p>
@@ -147,14 +199,16 @@
               <h3 class="draw-results__title" data-i18n="admin.drawResult" data-i18n-ns="admin">Výsledok žrebovania</h3>
               <p class="draw-results__meta" id="draw-results-meta"></p>
               <div class="draw-prize-summary" id="draw-prize-summary"></div>
-              <div class="draw-results__grid">
-                <div class="draw-panel">
-                  <h4>Hlavné ceny (3)</h4>
+              <div class="draw-results__grid draw-results__grid--dual">
+                <div class="draw-panel draw-panel--lottery">
+                  <h4>🎲 Vyžrebovaní z osudia</h4>
                   <ol class="draw-list" id="draw-main-list"></ol>
-                </div>
-                <div class="draw-panel">
-                  <h4>Menšie ceny (97)</h4>
+                  <h5 class="draw-panel__sub">Zvyšných 97 z osudia</h5>
                   <ol class="draw-list draw-list--compact" id="draw-small-list"></ol>
+                </div>
+                <div class="draw-panel draw-panel--walkers">
+                  <h4>🥾 Najväčší makači mesiaca (km)</h4>
+                  <ol class="draw-list" id="draw-walkers-list"></ol>
                 </div>
               </div>
             </div>
@@ -174,8 +228,10 @@
     </dialog>
 
     <script src="scripts/i18n.js"></script>
-    <script src="scripts/settings-store.js?v=2"></script>
-    <script src="scripts/draw-core.js"></script>
-    <script src="admin.js?v=3"></script>
+    <script src="scripts/subscription-plans.js"></script>
+    <script src="scripts/auth-store.js?v=3"></script>
+    <script src="scripts/settings-store.js?v=3"></script>
+    <script src="scripts/draw-core.js?v=2"></script>
+    <script src="admin.js?v=8"></script>
   </body>
 </html>

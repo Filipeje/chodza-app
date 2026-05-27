@@ -1,0 +1,534 @@
+:root {
+  --welcome-bg: #0a1209;
+  --welcome-bg-soft: #121f11;
+  --welcome-surface: #1a2e19;
+  --welcome-text: #e8f7e6;
+  --welcome-muted: #8fb88c;
+  --neon: #5cff6a;
+  --neon-bright: #7dff88;
+  --neon-dim: rgba(92, 255, 106, 0.35);
+  --neon-glow: 0 0 24px rgba(92, 255, 106, 0.45), 0 0 48px rgba(92, 255, 106, 0.15);
+  --danger: #ff6b6b;
+  --radius: 14px;
+  --max: 480px;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--welcome-bg);
+  color: var(--welcome-text);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.welcome-page {
+  max-width: var(--max);
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 1.25rem 1.25rem 2.5rem;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgba(92, 255, 106, 0.18), transparent 55%),
+    var(--welcome-bg);
+}
+
+/* —— Hero —— */
+.welcome-hero {
+  text-align: center;
+  padding: 0.5rem 0 1.75rem;
+}
+
+.welcome-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 1rem;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(92, 255, 106, 0.25), rgba(42, 79, 40, 0.6));
+  box-shadow: var(--neon-glow);
+  border: 1px solid rgba(92, 255, 106, 0.5);
+}
+
+.welcome-logo svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 8px rgba(92, 255, 106, 0.8));
+}
+
+.welcome-logo__name {
+  display: block;
+  margin-top: 0.65rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--neon-bright);
+  text-shadow: 0 0 20px rgba(92, 255, 106, 0.5);
+}
+
+.welcome-slogan {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.35rem, 5vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--welcome-text);
+}
+
+.welcome-sub {
+  margin: 0.75rem auto 0;
+  max-width: 22rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--welcome-muted);
+}
+
+/* —— Form sections —— */
+.welcome-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.welcome-section {
+  background: var(--welcome-surface);
+  border: 1px solid rgba(92, 255, 106, 0.12);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.welcome-section__title {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neon);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--welcome-muted);
+}
+
+.field__label--optional::after {
+  content: " (nepovinné)";
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.field__input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(143, 184, 140, 0.35);
+  border-radius: 10px;
+  background: var(--welcome-bg-soft);
+  color: var(--welcome-text);
+  font-size: 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px var(--neon-dim);
+}
+
+.field__input::placeholder {
+  color: rgba(143, 184, 140, 0.5);
+}
+
+.field__input--error {
+  border-color: var(--danger);
+}
+
+.field__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.field__pw-wrap {
+  position: relative;
+}
+
+.field__pw-wrap .field__input {
+  padding-right: 2.75rem;
+}
+
+.field__pw-toggle {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--welcome-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.field__pw-toggle:hover {
+  color: var(--neon);
+}
+
+.field__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--welcome-muted);
+}
+
+.field__hint--iban {
+  padding: 0.65rem 0.75rem;
+  background: rgba(92, 255, 106, 0.06);
+  border-left: 3px solid var(--neon);
+  border-radius: 0 8px 8px 0;
+}
+
+.field__error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--danger);
+  min-height: 1em;
+}
+
+/* —— Health connect button —— */
+.health-connect__intro {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+  color: var(--neon-bright);
+  font-weight: 600;
+}
+
+.btn-health-connect {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  cursor: pointer;
+  color: #0a1209;
+  background: linear-gradient(135deg, var(--neon-bright), var(--neon) 45%, #2dd44a);
+  box-shadow: var(--neon-glow);
+  transition: transform 0.12s, filter 0.12s;
+  font-family: inherit;
+}
+
+.btn-health-connect:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-health-connect:active {
+  transform: translateY(0);
+}
+
+.btn-health-connect:focus-visible {
+  outline: 2px solid var(--neon-bright);
+  outline-offset: 3px;
+}
+
+.btn-health-connect--linked {
+  filter: brightness(0.95);
+  box-shadow: 0 0 20px rgba(92, 255, 106, 0.55);
+}
+
+.health-connect__hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--welcome-muted);
+  text-align: center;
+}
+
+.health-connect__done {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--neon-bright);
+  text-align: center;
+}
+
+.health-connect__done[hidden] {
+  display: none;
+}
+
+.welcome-section--legal {
+  border-color: rgba(143, 184, 140, 0.2);
+  background: rgba(18, 31, 17, 0.85);
+}
+
+.welcome-section--legal .welcome-section__title {
+  color: var(--welcome-muted);
+}
+
+.welcome-cta {
+  margin-top: 0.25rem;
+}
+
+/* —— GDPR —— */
+.gdpr {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--welcome-muted);
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 184, 140, 0.25);
+  background: rgba(10, 18, 9, 0.35);
+}
+
+.gdpr input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  accent-color: var(--neon);
+  flex-shrink: 0;
+}
+
+.gdpr a {
+  color: var(--neon-bright);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* —— Balíky predplatného —— */
+.plans-intro {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--welcome-muted);
+  line-height: 1.45;
+}
+
+.plan-picker {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.plan-card {
+  display: block;
+  cursor: pointer;
+}
+
+.plan-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.plan-card__inner {
+  display: block;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+
+.plan-card input:focus-visible + .plan-card__inner {
+  outline: 2px solid var(--neon-bright);
+  outline-offset: 2px;
+}
+
+.plan-card--free .plan-card__inner {
+  background: linear-gradient(145deg, #f0f4ef 0%, #e4ebe3 100%);
+  color: #3d4a3c;
+  border-color: rgba(200, 210, 198, 0.9);
+}
+
+.plan-card--basic .plan-card__inner {
+  background: linear-gradient(145deg, #c8ccc8 0%, #a8aea8 100%);
+  color: #1e241e;
+  border-color: rgba(90, 98, 90, 0.5);
+}
+
+.plan-card--plus .plan-card__inner {
+  background: linear-gradient(145deg, #1a1c1a 0%, #0d0f0d 100%);
+  color: #e8f0e7;
+  border-color: rgba(61, 212, 74, 0.35);
+}
+
+.plan-card input:checked + .plan-card__inner {
+  border-color: var(--neon-bright);
+  box-shadow: 0 0 0 1px var(--neon-bright), var(--neon-glow);
+  transform: translateY(-2px);
+}
+
+.plan-card__badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+  opacity: 0.85;
+}
+
+.plan-card__price {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.plan-card__per {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.plan-card__features {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.plan-card__warn {
+  color: #8b5a3c;
+  font-weight: 600;
+}
+
+.plan-card--plus .plan-card__warn {
+  color: #f0a878;
+}
+
+/* —— CTA —— */
+.btn-cta {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: #0a1209;
+  background: linear-gradient(135deg, var(--neon-bright), var(--neon) 45%, #2dd44a);
+  box-shadow: var(--neon-glow);
+  transition: transform 0.12s, filter 0.12s;
+}
+
+.btn-cta:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-cta:active {
+  transform: translateY(0);
+}
+
+.btn-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.welcome-login-link {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--welcome-muted);
+}
+
+.welcome-login-link a {
+  color: var(--neon-bright);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.welcome-login-link a:hover {
+  text-decoration: underline;
+}
+
+.welcome-file-hint {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  color: #ffe9a8;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.welcome-file-hint code {
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.welcome-toast {
+  display: none;
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  max-width: calc(var(--max) - 2rem);
+  width: calc(100% - 2rem);
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--welcome-surface);
+  border: 1px solid var(--neon);
+  box-shadow: var(--neon-glow);
+  font-size: 0.88rem;
+  text-align: center;
+  z-index: 100;
+}
+
+.welcome-toast--show {
+  display: block;
+}
+
+.welcome-toast--error {
+  border-color: var(--danger);
+  color: #ffd4d4;
+}
+
+@media (max-width: 380px) {
+  .field__row {
+    grid-template-columns: 1fr;
+  }
+}

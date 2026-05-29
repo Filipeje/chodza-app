@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#558352" />
     <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css?v=game52" />
+    <link rel="stylesheet" href="styles.css?v=game57" />
     <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
@@ -217,17 +217,23 @@
         </section>
 
         <section class="panel panel--tickets" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
-          <div class="points-hero">
-            <p class="points-hero__month" id="tickets-month">máj 2026</p>
-            <p class="points-hero__total">
-              <span class="points-hero__count" id="tickets-count">0</span>
-              <span class="points-hero__label" id="tickets-count-label" data-i18n="tickets.labelMonthMany">bodov tento mesiac</span>
-            </p>
+          <div class="level-card">
+            <div class="level-card__top">
+              <span class="level-card__badge">LVL&nbsp;<span id="ach-level">1</span></span>
+              <div class="level-card__meta">
+                <p class="level-card__title" id="ach-level-title">Tvoj postup</p>
+                <p class="level-card__sub" id="ach-level-sub">0 bodov · 0 km celkovo</p>
+              </div>
+            </div>
+            <div class="level-bar"><span class="level-bar__fill" id="ach-level-fill"></span></div>
+            <p class="level-card__next" id="ach-level-next">Do ďalšieho levelu ti chýba 50 bodov</p>
           </div>
 
-          <div class="points-calendar" id="ticket-list"></div>
+          <h2 class="ach-heading" id="ach-challenges-title">Aktívne výzvy</h2>
+          <div class="challenges" id="ach-challenges"></div>
 
-          <p class="hint points-hint" id="tickets-points-hint" hidden></p>
+          <h2 class="ach-heading" id="ach-badges-title">Odznaky</h2>
+          <div class="badges" id="ach-badges"></div>
         </section>
 
         <section class="panel" id="panel-winners" aria-labelledby="nav-winners" hidden>
@@ -428,6 +434,6 @@
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/health-sync.js?v=2"></script>
-    <script src="app.js?v=25"></script>
+    <script src="app.js?v=29"></script>
   </body>
 </html>

@@ -233,9 +233,9 @@ function updateHomeTopbar() {
   if (hello && user) hello.textContent = ChodzaAuth.displayName(user);
   if (city && user) city.textContent = user.city || "—";
 
-  // jednoduchý level: 1 + celkové body / 50
-  const totalPts = Number(user?.totalPoints ?? user?.celkoveBody ?? 0) || 0;
-  const lvl = 1 + Math.floor(totalPts / 50);
+  // jednoduchý level: 1 + celkové body / 50 (z reálnej histórie, zhodné so sekciou Moje body)
+  const totalPts = getTotalPointsAllTime();
+  const lvl = 1 + Math.floor(totalPts / POINTS_PER_LEVEL);
   if (level) level.textContent = `Level ${lvl}`;
   if (av) av.dataset.level = String(lvl);
 
@@ -627,41 +627,171 @@ function dayAbbrSk(iso) {
   return abbr.slice(0, 2).toUpperCase();
 }
 
-function renderTickets() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const today = todayIso();
+const POINTS_PER_LEVEL = 50;
 
-  const totalPoints = getMonthDailyPoints().reduce((s, d) => s + d.points, 0);
+function achLang(sk, en) {
+  return typeof ChodzaI18n !== "undefined" && ChodzaI18n.getLang && ChodzaI18n.getLang() === "en"
+    ? en
+    : sk;
+}
 
-  document.getElementById("tickets-month").textContent = now.toLocaleDateString(loc(), {
-    month: "long",
-    year: "numeric",
-  });
-  document.getElementById("tickets-count").textContent = String(totalPoints);
-  document.getElementById("tickets-count-label").textContent = pluralBody(totalPoints);
+function setTextById(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
 
-  let cells = "";
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = isoFromParts(y, m, d);
-    const km = getKmForDate(iso);
-    const pts = km != null ? getPointsForKm(km) : 0;
-    const ptsTier = pts >= 3 ? 3 : pts >= 2 ? 2 : pts >= 1 ? 1 : 0;
-    const ptsClass = ptsTier ? ` points-cell--p${ptsTier}` : "";
-    const todayClass = iso === today ? " points-cell--today" : "";
-    const kmText = km != null ? `${km.toFixed(1)} km` : "— km";
+function getTotalPointsAllTime() {
+  return state.history.reduce((s, h) => s + getPointsForKm(h.km), 0);
+}
 
-    cells += `
-      <div class="points-cell${ptsClass}${todayClass}" title="${d}. ${formatShortSk(iso)}">
-        <span class="points-cell__wd">${dayAbbrSk(iso)}</span>
-        <span class="points-cell__pts-big">${pts}</span>
-        <span class="points-cell__km-sm">${kmText}</span>
-      </div>`;
+function computeLongestGoalStreak() {
+  const days = state.history
+    .filter((h) => qualifiesGreenDot(h.km))
+    .map((h) => h.date)
+    .sort();
+  let best = 0;
+  let cur = 0;
+  let prev = null;
+  for (const date of days) {
+    if (prev && addDays(prev, 1) === date) cur += 1;
+    else cur = 1;
+    if (cur > best) best = cur;
+    prev = date;
   }
+  return best;
+}
 
-  document.getElementById("ticket-list").innerHTML = `<div class="points-month-grid">${cells}</div>`;
+function computeAchievementStats() {
+  const totalKm = state.history.reduce((s, h) => s + Number(h.km || 0), 0);
+  const activeDays = state.history.filter((h) => Number(h.km || 0) > 0).length;
+  const goalDays = state.history.filter((h) => qualifiesGreenDot(h.km)).length;
+  const bestDayKm = state.history.reduce((mx, h) => Math.max(mx, Number(h.km || 0)), 0);
+  const totalPoints = getTotalPointsAllTime();
+  const currentStreak = computeGoalStreakDays();
+  const longestStreak = computeLongestGoalStreak();
+  const weekKm = getPeriodHistory("week").reduce((s, h) => s + Number(h.km || 0), 0);
+  const monthGoalDays = getPeriodHistory("month").filter((h) => qualifiesGreenDot(h.km)).length;
+  return {
+    totalKm,
+    activeDays,
+    goalDays,
+    bestDayKm,
+    totalPoints,
+    currentStreak,
+    longestStreak,
+    weekKm,
+    monthGoalDays,
+  };
+}
+
+function renderChallenges(s) {
+  const host = document.getElementById("ach-challenges");
+  if (!host) return;
+
+  const weekTarget = Math.max(20, Math.round(state.goalKm * 5));
+  const items = [
+    {
+      icon: "🏃",
+      title: achLang("Týždenná porcia km", "Weekly distance"),
+      cur: s.weekKm,
+      max: weekTarget,
+      unit: "km",
+      fmt: (v) => v.toFixed(1),
+    },
+    {
+      icon: "🎯",
+      title: achLang("Splnené ciele tento mesiac", "Goals met this month"),
+      cur: s.monthGoalDays,
+      max: 20,
+      unit: achLang("dní", "days"),
+      fmt: (v) => String(v),
+    },
+    {
+      icon: "🔥",
+      title: achLang("Séria v rade", "Streak in a row"),
+      cur: s.currentStreak,
+      max: 7,
+      unit: achLang("dní", "days"),
+      fmt: (v) => String(v),
+    },
+  ];
+
+  host.innerHTML = items
+    .map((c) => {
+      const pct = c.max > 0 ? Math.min(100, Math.round((c.cur / c.max) * 100)) : 0;
+      const done = c.cur >= c.max;
+      return `
+        <div class="challenge${done ? " challenge--done" : ""}">
+          <div class="challenge__head">
+            <span class="challenge__icon">${c.icon}</span>
+            <span class="challenge__title">${c.title}</span>
+            <span class="challenge__val">${c.fmt(c.cur)} / ${c.max} ${c.unit}${done ? " ✓" : ""}</span>
+          </div>
+          <div class="challenge__bar"><span class="challenge__fill" style="width:${pct}%"></span></div>
+        </div>`;
+    })
+    .join("");
+}
+
+function renderBadges(s) {
+  const host = document.getElementById("ach-badges");
+  if (!host) return;
+
+  const items = [
+    { img: "step-shoe", title: achLang("Prvé kroky", "First steps"), desc: achLang("Zaznamenaj prvý deň", "Log your first day"), done: s.activeDays >= 1 },
+    { img: "star", title: achLang("Stovkár", "Centurion"), desc: achLang("Získaj 100 bodov", "Earn 100 points"), done: s.totalPoints >= 100 },
+    { img: "club100", title: achLang("Klub 100 km", "100 km club"), desc: achLang("Prejdi spolu 100 km", "Walk 100 km total"), done: s.totalKm >= 100 },
+    { img: "club500", title: achLang("Klub 500 km", "500 km club"), desc: achLang("Prejdi spolu 500 km", "Walk 500 km total"), done: s.totalKm >= 500 },
+    { img: "club1000", title: achLang("Klub 1000 km", "1000 km club"), desc: achLang("Prejdi spolu 1000 km", "Walk 1000 km total"), done: s.totalKm >= 1000 },
+    { img: "marathon", title: achLang("Maratónec", "Marathoner"), desc: achLang("42 km za jeden deň", "42 km in one day"), done: s.bestDayKm >= 42 },
+    { img: "week", title: achLang("Týždeň v kuse", "Full week"), desc: achLang("7-dňová séria cieľov", "7-day goal streak"), done: s.longestStreak >= 7 },
+    { img: "endurance", title: achLang("Vytrvalec", "Endurance"), desc: achLang("30 aktívnych dní", "30 active days"), done: s.activeDays >= 30 },
+    { img: "month", title: achLang("Mesačný bojovník", "Month warrior"), desc: achLang("30-dňová séria cieľov", "30-day goal streak"), done: s.longestStreak >= 30 },
+  ];
+
+  host.innerHTML = items
+    .map(
+      (b) => `
+        <div class="badge${b.done ? " badge--done" : " badge--locked"}">
+          <img class="badge__img" src="assets/badges/${b.img}.png?v=2" alt="" />
+          <span class="badge__title">${b.title}</span>
+          <span class="badge__desc">${b.desc}</span>
+        </div>`
+    )
+    .join("");
+}
+
+function renderTickets() {
+  if (!document.getElementById("panel-tickets")) return;
+
+  const s = computeAchievementStats();
+  const level = 1 + Math.floor(s.totalPoints / POINTS_PER_LEVEL);
+  const intoLevel = s.totalPoints % POINTS_PER_LEVEL;
+  const toNext = POINTS_PER_LEVEL - intoLevel;
+
+  setTextById("ach-level", String(level));
+  setTextById("ach-level-title", achLang("Tvoj postup", "Your progress"));
+  setTextById(
+    "ach-level-sub",
+    achLang(
+      `${s.totalPoints} ${pluralBody(s.totalPoints)} · ${s.totalKm.toFixed(0)} km celkovo`,
+      `${s.totalPoints} pts · ${s.totalKm.toFixed(0)} km total`
+    )
+  );
+  const fill = document.getElementById("ach-level-fill");
+  if (fill) fill.style.width = `${Math.round((intoLevel / POINTS_PER_LEVEL) * 100)}%`;
+  setTextById(
+    "ach-level-next",
+    achLang(
+      `Do levelu ${level + 1} ti chýba ${toNext} ${pluralBody(toNext)}`,
+      `${toNext} points to level ${level + 1}`
+    )
+  );
+  setTextById("ach-challenges-title", achLang("Aktívne výzvy", "Active challenges"));
+  setTextById("ach-badges-title", achLang("Odznaky", "Badges"));
+
+  renderChallenges(s);
+  renderBadges(s);
 }
 
 function currentMonthKey() {

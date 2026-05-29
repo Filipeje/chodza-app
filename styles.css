@@ -2486,3 +2486,211 @@ html[data-plan="premium"] .winners-neon {
 .nav__icon {
   font-size: 1.25rem;
 }
+
+/* ===== Moje body: Level + Výzvy + Odznaky ===== */
+.panel--tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.level-card {
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem 1.1rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.level-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.level-card__badge {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  padding: 0.5rem 0.7rem;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: #04140a;
+  background: linear-gradient(135deg, var(--accent-light), var(--accent));
+  box-shadow: 0 0 18px rgba(0, 230, 118, 0.45);
+}
+
+.level-card__badge span {
+  font-size: 1.35rem;
+  margin-left: 0.15rem;
+}
+
+.level-card__meta {
+  min-width: 0;
+}
+
+.level-card__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.level-card__sub {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.level-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.level-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.55);
+  transition: width 0.5s ease;
+}
+
+.level-card__next {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ach-heading {
+  margin: 0.2rem 0 -0.2rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+/* Výzvy */
+.challenges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.challenge {
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+}
+
+.challenge--done {
+  border-color: rgba(0, 230, 118, 0.55);
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.18);
+}
+
+.challenge__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.challenge__icon {
+  font-size: 1.1rem;
+}
+
+.challenge__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.challenge__val {
+  flex: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.challenge__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.challenge__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.45);
+  transition: width 0.5s ease;
+}
+
+/* Odznaky */
+.badges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 1rem 0.5rem 0.9rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+}
+
+.badge__img {
+  width: 100%;
+  max-width: 84px;
+  height: 76px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  margin: 0 auto;
+}
+
+.badge__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.badge__desc {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+.badge--done {
+  border-color: rgba(0, 230, 118, 0.55);
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.18);
+}
+
+.badge--done .badge__img {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+}
+
+.badge--locked {
+  opacity: 0.6;
+}
+
+.badge--locked .badge__img {
+  filter: grayscale(1) brightness(0.8);
+}

@@ -6,94 +6,190 @@
     <meta name="theme-color" content="#558352" />
     <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=game52" />
     <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
     <div class="app">
+      <input
+        type="file"
+        id="avatar-file"
+        accept="image/*"
+        class="visually-hidden"
+      />
       <header class="header">
-        <h1 class="header__title" id="page-title" data-i18n="nav.home">Dnes</h1>
+        <h1 class="header__title visually-hidden" id="page-title" data-i18n="nav.home">Dnes</h1>
+        <div class="topbar">
+          <div class="topbar__left">
+            <div class="topbar__avatar" id="home-avatar" aria-hidden="true">?</div>
+            <div class="topbar__who">
+              <p class="topbar__hello" id="home-hello">Ahoj!</p>
+              <p class="topbar__meta">
+                <span class="topbar__level" id="home-level">Level 1</span>
+                <span class="topbar__dot">·</span>
+                <span id="home-city">—</span>
+              </p>
+            </div>
+            <button type="button" class="topbar__edit" id="home-edit-profile" aria-label="Upraviť profil" title="Upraviť profil">
+              ✎
+            </button>
+          </div>
+          <div class="topbar__right">
+            <button type="button" class="topbar__icon" id="home-bell" aria-label="Notifikácie">🔔</button>
+            <div class="topbar__pill" title="Séria dní">
+              <span class="topbar__pill-ic" aria-hidden="true">🔥</span>
+              <strong class="topbar__pill-val" id="home-streak">0</strong>
+              <span class="topbar__pill-lbl">dní série</span>
+            </div>
+          </div>
+        </div>
         <p class="header__date" id="today-date"></p>
       </header>
 
       <main class="main">
         <section class="panel panel--active" id="panel-home" aria-labelledby="nav-home">
-          <div class="ring-card">
-            <div class="ring ring--stadium" role="img" data-i18n-aria="ring.aria">
-              <svg class="ring__svg" viewBox="0 0 240 118" aria-hidden="true">
+          <div class="home-hero">
+            <div class="ring-card ring-card--hero">
+              <div class="ring ring--circle" role="img" data-i18n-aria="ring.aria">
+                <svg class="ring__svg" viewBox="0 0 240 240" aria-hidden="true">
+                  <circle class="ring__track" cx="120" cy="120" r="92" />
+                  <circle class="ring__progress ring__progress--tier1" id="ring-progress-1" cx="120" cy="120" r="92" />
+                  <circle class="ring__progress ring__progress--tier2" id="ring-progress-2" cx="120" cy="120" r="92" />
+                  <circle class="ring__progress ring__progress--tier3" id="ring-progress-3" cx="120" cy="120" r="92" />
+                </svg>
+                <div class="ring__center">
+                  <div class="ring__shoe" aria-hidden="true">
+                    <img src="assets/topanka.png" alt="" class="ring__shoeImg" />
+                  </div>
+                  <span class="ring__value" id="km-today">0.0</span>
+                  <span class="ring__unit">km</span>
+                  <p class="ring__goalLabel" id="goal-label">DNEŠNÝ CIEĽ</p>
+                  <p class="ring__goalKm" id="goal-km">— km</p>
+                </div>
+                <div class="ring__check" id="ring-check" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor" d="M9.2 16.6 4.8 12.2l1.4-1.4 3 3 8.6-8.6 1.4 1.4-10 10z" />
+                  </svg>
+                </div>
+              </div>
+              <p class="health-sync-status health-sync-status--off" id="health-sync-status"></p>
+              <button type="button" class="btn btn--ghost" id="sync-btn" data-i18n="ring.sync">Aktualizovať km</button>
+            </div>
+
+            <!-- right side card removed per design feedback -->
+          </div>
+
+          <div class="weekly-card" aria-label="Týždenný prehľad">
+            <div class="weekly-card__top">
+              <div class="weekly-card__left">
+                <p class="weekly-card__title"><span class="weekly-card__title-dim">Dnes</span> <span id="weekly-today-points">1 bod</span></p>
+
+                <div class="weekly-card__calendar">
+                  <p class="weekly-card__calTitle" id="calendar-teaser-title">Kalendár chôdze</p>
+                  <div class="weekly-card__calActions">
+                    <button
+                      type="button"
+                      class="history-btn weekly-card__calBtn"
+                      id="calendar-open-btn"
+                      data-i18n-aria="calendar.openAria"
+                      title="Kalendár"
+                    >
+                      <svg class="history-btn__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          fill="currentColor"
+                          d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM5 4h1V2h2v2h8V2h2v2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 16h14V9H5v11z"
+                        />
+                      </svg>
+                      <span data-i18n="calendar.open">Kalendár</span>
+                    </button>
+
+                    <button type="button" class="info-btn" id="calendar-info-btn" aria-label="Info" title="Info">i</button>
+                    <div class="tooltip tooltip--hidden" id="calendar-info-tip" role="status" aria-live="polite">
+                      Klikni a pozri si km po dňoch · zelená bodka = aspoň 10 km
+                    </div>
+                  </div>
+                </div>
+                <div class="weekly-card__calHint" id="calendar-goal-hint"></div>
+              </div>
+              <div class="weekly-bars" aria-hidden="true">
+                <div class="weekly-bars__col" data-weekday="0">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">PON</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="1">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">UTO</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="2">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">STR</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="3">
+                  <span class="weekly-bars__star" aria-hidden="true">★</span>
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">ŠTV</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="4">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">PIA</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="5">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">SOB</span>
+                </div>
+                <div class="weekly-bars__col" data-weekday="6">
+                  <span class="weekly-bars__bar"></span><span class="weekly-bars__lbl">NED</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sub-card" aria-label="Predplatné">
+            <div class="sub-card__gift" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  class="ring__track"
-                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
-                />
-                <path
-                  class="ring__progress ring__progress--tier1"
-                  id="ring-progress-1"
-                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
-                />
-                <path
-                  class="ring__progress ring__progress--tier2"
-                  id="ring-progress-2"
-                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
-                />
-                <path
-                  class="ring__progress ring__progress--tier3"
-                  id="ring-progress-3"
-                  d="M 120,10 L 190,10 A 48,50 0 0 1 190,108 L 50,108 A 48,50 0 0 1 50,10 Z"
+                  fill="currentColor"
+                  d="M20 7h-1.6a2.7 2.7 0 0 0 .4-1.4C18.8 4.2 17.6 3 16 3c-1.6 0-2.8 1.2-4 3-1.2-1.8-2.4-3-4-3S5.2 4.2 5.2 5.6c0 .5.1 1 .4 1.4H4a1 1 0 0 0-1 1v3h18V8a1 1 0 0 0-1-1ZM8 5c.8 0 1.7.8 2.6 2H8c-.9 0-1.6-.6-1.6-1.4C6.4 5.6 7.2 5 8 5Zm8 0c.8 0 1.6.6 1.6 1.4S16.9 7.8 16 7.8h-2.6C14.3 5.8 15.2 5 16 5ZM3 12v8a1 1 0 0 0 1 1h7v-9H3Zm10 0v9h7a1 1 0 0 0 1-1v-8h-8Z"
                 />
               </svg>
-              <div class="ring__center">
-                <span class="ring__value" id="km-today">0.0</span>
-                <span class="ring__unit">km</span>
-              </div>
             </div>
-            <p class="ring-card__status" id="goal-status"></p>
-            <p class="health-sync-status health-sync-status--off" id="health-sync-status"></p>
-            <button type="button" class="btn btn--ghost" id="sync-btn" data-i18n="ring.sync">Aktualizovať km</button>
-          </div>
-
-          <div class="plan-notice plan-notice--free" id="plan-free-notice" hidden>
-            <p>
-              Máš balík <strong>Free</strong>: body za km sa počítajú, ale
-              <strong>nie si v mesačnom žrebovaní</strong> a nemôžeš vyhrať.
-            </p>
-            <div class="plan-notice__actions">
-              <button type="button" class="plan-upgrade-btn plan-upgrade-btn--basic" data-plan-change="basic">
-                4,99 €
+            <div class="sub-card__plans">
+              <button type="button" class="plan-chip plan-chip--active" data-plan-change="free">
+                <span class="plan-chip__name">FREE</span>
+                <span class="plan-chip__price">0 €</span>
               </button>
-              <button type="button" class="plan-upgrade-btn plan-upgrade-btn--plus" data-plan-change="plus">
-                7,99 €
+              <button type="button" class="plan-chip" data-plan-change="plus">
+                <span class="plan-chip__name">PLUS</span>
+                <span class="plan-chip__price">4,99 €</span>
+              </button>
+              <button type="button" class="plan-chip" data-plan-change="premium">
+                <span class="plan-chip__name">PREMIUM</span>
+                <span class="plan-chip__price">7,99 €</span>
               </button>
             </div>
-          </div>
-
-          <div class="plan-notice plan-notice--plus" id="plan-plus-notice" hidden>
-            <p>
-              Balík <strong>Plus</strong>: získavaš <strong>2× viac bodov</strong> za rovnaké kilometre a si v žrebovaní.
-              Pity násobič 1,5× pri prehre je rovnaký ako pri balíku za 4,99 €.
+            <p class="sub-card__note">
+              Máš balík <strong>Free</strong>: body za km sa počítajú, ale <strong>nie si v mesačnom žrebovaní</strong> a nemôžeš vyhrať.
             </p>
           </div>
 
-          <div class="draw-countdown" id="draw-countdown" aria-live="polite">
-            <p class="draw-countdown__label" data-i18n="countdown.until">Do ďalšieho odmeňovania</p>
-            <p class="draw-countdown__when" id="draw-countdown-when"></p>
-            <div class="draw-countdown__grid" id="draw-countdown-grid">
-              <div class="draw-countdown__unit">
-                <span class="draw-countdown__value" id="cd-days">—</span>
-                <span class="draw-countdown__name" data-i18n="countdown.days">dní</span>
-              </div>
-              <div class="draw-countdown__unit">
-                <span class="draw-countdown__value" id="cd-hours">—</span>
-                <span class="draw-countdown__name" data-i18n="countdown.hour">hod</span>
-              </div>
-              <div class="draw-countdown__unit">
-                <span class="draw-countdown__value" id="cd-mins">—</span>
-                <span class="draw-countdown__name" data-i18n="countdown.min">min</span>
-              </div>
-              <div class="draw-countdown__unit">
-                <span class="draw-countdown__value" id="cd-secs">—</span>
-                <span class="draw-countdown__name" data-i18n="countdown.sec">sek</span>
+          <div class="draw-countdown draw-countdown--trophy" id="draw-countdown" aria-live="polite">
+            <div class="draw-countdown__left">
+              <p class="draw-countdown__label" data-i18n="countdown.until">Do ďalšieho odmeňovania</p>
+              <p class="draw-countdown__when" id="draw-countdown-when"></p>
+              <div class="draw-countdown__grid" id="draw-countdown-grid">
+                <div class="draw-countdown__unit">
+                  <span class="draw-countdown__value" id="cd-days">—</span>
+                  <span class="draw-countdown__name" data-i18n="countdown.days">dní</span>
+                </div>
+                <div class="draw-countdown__unit">
+                  <span class="draw-countdown__value" id="cd-hours">—</span>
+                  <span class="draw-countdown__name" data-i18n="countdown.hour">hod</span>
+                </div>
+                <div class="draw-countdown__unit">
+                  <span class="draw-countdown__value" id="cd-mins">—</span>
+                  <span class="draw-countdown__name" data-i18n="countdown.min">min</span>
+                </div>
+                <div class="draw-countdown__unit">
+                  <span class="draw-countdown__value" id="cd-secs">—</span>
+                  <span class="draw-countdown__name" data-i18n="countdown.sec">sek</span>
+                </div>
               </div>
             </div>
+            <div class="countdown-trophy" aria-hidden="true"></div>
           </div>
 
           <div class="period-toggle" role="group" data-i18n-aria="period.aria">
@@ -118,27 +214,6 @@
             </div>
           </div>
 
-          <section class="calendar-teaser" aria-labelledby="calendar-teaser-title">
-            <div class="recent-days__head">
-              <h2 class="recent-days__title" id="calendar-teaser-title" data-i18n="calendar.title">Kalendár chôdze</h2>
-              <button
-                type="button"
-                class="history-btn"
-                id="calendar-open-btn"
-                data-i18n-aria="calendar.openAria"
-                title="Kalendár"
-              >
-                <svg class="history-btn__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zM5 4h1V2h2v2h8V2h2v2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 16h14V9H5v11z"
-                  />
-                </svg>
-                <span data-i18n="calendar.open">Kalendár</span>
-              </button>
-            </div>
-            <p class="calendar-teaser__hint" id="calendar-goal-hint"></p>
-          </section>
         </section>
 
         <section class="panel panel--tickets" id="panel-tickets" aria-labelledby="nav-tickets" hidden>
@@ -167,16 +242,6 @@
         </section>
 
         <section class="panel" id="panel-profile" aria-labelledby="nav-profile" hidden>
-          <div class="profile-card">
-            <div class="avatar" id="user-avatar" aria-hidden="true">?</div>
-            <div>
-              <p class="profile-card__name" id="user-name">—</p>
-              <p class="profile-card__nick" id="user-nick"></p>
-              <p class="profile-card__email" id="user-email">—</p>
-              <p class="profile-card__city" id="user-city"></p>
-            </div>
-          </div>
-
           <ul class="settings-list">
             <li>
               <div class="setting setting--plan">
@@ -222,10 +287,7 @@
               <p class="hint hint--notify" data-i18n="profile.notifyHint"></p>
             </li>
             <li>
-              <label class="setting setting--toggle">
-                <span data-i18n="profile.dark">Tmavý režim</span>
-                <input type="checkbox" id="setting-dark" />
-              </label>
+              <!-- tmavý režim removed (fixed design) -->
             </li>
             <li>
               <label class="setting setting--iban">
@@ -313,12 +375,59 @@
       </div>
     </div>
 
+    <div class="history-modal" id="profile-edit-modal" hidden>
+      <div class="history-modal__backdrop" id="profile-edit-backdrop"></div>
+      <div class="history-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
+        <header class="history-modal__header">
+          <h2 id="profile-edit-title">Upraviť profil</h2>
+          <button type="button" class="history-modal__close" id="profile-edit-close" aria-label="Zavrieť">
+            ✕
+          </button>
+        </header>
+
+        <div class="history-modal__content">
+          <div class="edit-form">
+            <label class="edit-form__field">
+              <span>Meno</span>
+              <input type="text" id="edit-firstName" class="edit-form__input" autocomplete="given-name" />
+            </label>
+            <label class="edit-form__field">
+              <span>Priezvisko</span>
+              <input type="text" id="edit-lastName" class="edit-form__input" autocomplete="family-name" />
+            </label>
+            <label class="edit-form__field">
+              <span>Email</span>
+              <input type="email" id="edit-email" class="edit-form__input" autocomplete="email" disabled />
+            </label>
+            <label class="edit-form__field">
+              <span>Nick (unikátny)</span>
+              <input type="text" id="edit-username" class="edit-form__input" disabled />
+            </label>
+            <label class="edit-form__field">
+              <span>Mesto / adresa</span>
+              <input type="text" id="edit-city" class="edit-form__input" autocomplete="address-level2" />
+            </label>
+            <label class="edit-form__field">
+              <span>Tel. číslo (nepovinné)</span>
+              <input type="tel" id="edit-phone" class="edit-form__input" autocomplete="tel" />
+            </label>
+          </div>
+
+          <div class="edit-actions">
+            <button type="button" class="btn btn--primary" id="profile-edit-save">Uložiť</button>
+            <button type="button" class="btn btn--ghost" id="profile-edit-cancel">Zrušiť</button>
+            <span class="edit-actions__status" id="profile-edit-status" aria-live="polite"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="scripts/subscription-plans.js"></script>
     <script src="scripts/draw-core.js?v=2"></script>
     <script src="scripts/auth-store.js?v=3"></script>
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/health-sync.js?v=2"></script>
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=25"></script>
   </body>
 </html>

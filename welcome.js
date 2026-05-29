@@ -212,7 +212,7 @@
       }
 
       const planInput = document.querySelector('input[name="subscriptionPlan"]:checked');
-      const subscriptionPlan = planInput ? planInput.value : "basic";
+      const subscriptionPlan = planInput ? planInput.value : "plus";
 
       const result = ChodzaAuth.register({
         firstName,

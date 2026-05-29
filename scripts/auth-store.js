@@ -111,9 +111,9 @@
     if (!user.subscriptionPlan) {
       user.subscriptionPlan =
         typeof ChodzaPlans !== "undefined"
-          ? ChodzaPlans.normalizePlan(user.premium ? "basic" : "free")
+          ? ChodzaPlans.normalizePlan(user.premium ? "plus" : "free")
           : user.premium
-            ? "basic"
+            ? "plus"
             : "free";
     }
     user.premium = user.subscriptionPlan !== "free";
@@ -150,12 +150,12 @@
 
     const plan =
       typeof ChodzaPlans !== "undefined"
-        ? ChodzaPlans.normalizePlan(payload.subscriptionPlan || "basic")
-        : payload.subscriptionPlan === "plus"
-          ? "plus"
-          : payload.subscriptionPlan === "free"
-            ? "free"
-            : "basic";
+        ? ChodzaPlans.normalizePlan(payload.subscriptionPlan || "plus")
+        : payload.subscriptionPlan === "premium"
+          ? "premium"
+          : payload.subscriptionPlan === "plus"
+            ? "plus"
+            : "free";
 
     const user = {
       firstName: String(payload.firstName || "").trim(),

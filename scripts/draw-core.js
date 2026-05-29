@@ -134,7 +134,7 @@
     };
   }
 
-  /** @param {function} [getUserPlan] (user) => 'free'|'basic'|'plus' */
+  /** @param {function} [getUserPlan] (user) => 'free'|'plus'|'premium' */
   function resolvePrizeConfig(settings, users, getUserPlan) {
     const norm = normalizeSettings(settings);
     if (norm.prizeMode === "manual") {
@@ -164,10 +164,10 @@
     const planFn =
       getUserPlan ||
       ((u) =>
-        u.subscriptionPlan === "plus" || u.subscriptionPlan === "basic"
+        u.subscriptionPlan === "premium" || u.subscriptionPlan === "plus"
           ? u.subscriptionPlan
           : u.status_predplatneho === "premium"
-            ? "basic"
+            ? "premium"
             : "free");
 
     const amounts = [prizes.walkerFirst, prizes.walkerSecond, prizes.walkerThird];

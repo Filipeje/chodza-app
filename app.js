@@ -195,6 +195,91 @@ function qualifiesGreenDot(km) {
   return km != null && km >= state.goalKm;
 }
 
+function computeGoalStreakDays() {
+  const sorted = getHistorySorted();
+  if (!sorted.length) return 0;
+  let streak = 0;
+  // počítame od dneška dozadu, len po sebe idúce dni splneného cieľa
+  let expected = todayIso();
+  for (const h of sorted) {
+    if (h.date !== expected) break;
+    if (!qualifiesGreenDot(h.km)) break;
+    streak += 1;
+    expected = addDays(expected, -1);
+  }
+  return streak;
+}
+
+function updateHomeTopbar() {
+  const user = typeof ChodzaAuth !== "undefined" ? ChodzaAuth.getCurrentUser() : null;
+  const av = document.getElementById("home-avatar");
+  const hello = document.getElementById("home-hello");
+  const level = document.getElementById("home-level");
+  const city = document.getElementById("home-city");
+  const streak = document.getElementById("home-streak");
+
+  if (av && user) {
+    const url = user.avatarUrl || user.avatarDataUrl;
+    if (url) {
+      av.classList.add("has-photo");
+      av.style.backgroundImage = `url("${url}")`;
+      av.textContent = "";
+    } else {
+      av.classList.remove("has-photo");
+      av.style.backgroundImage = "";
+      av.textContent = ChodzaAuth.avatarLetter(user);
+    }
+  }
+  if (hello && user) hello.textContent = ChodzaAuth.displayName(user);
+  if (city && user) city.textContent = user.city || "—";
+
+  // jednoduchý level: 1 + celkové body / 50
+  const totalPts = Number(user?.totalPoints ?? user?.celkoveBody ?? 0) || 0;
+  const lvl = 1 + Math.floor(totalPts / 50);
+  if (level) level.textContent = `Level ${lvl}`;
+  if (av) av.dataset.level = String(lvl);
+
+  if (streak) streak.textContent = String(computeGoalStreakDays());
+}
+
+function updateHomeHeroCards() {
+  const streakHero = document.getElementById("home-streak-hero");
+  if (streakHero) streakHero.textContent = String(computeGoalStreakDays());
+}
+
+function weekdayMonIndex(d = new Date()) {
+  // JS: 0=Sun..6=Sat -> 0=Mon..6=Sun
+  return (d.getDay() + 6) % 7;
+}
+
+function updateWeeklyBars() {
+  const todayIdx = weekdayMonIndex(new Date());
+  const cols = Array.from(document.querySelectorAll(".weekly-bars__col[data-weekday]"));
+
+  // Star over the weekday with the most km (week-to-date)
+  let starIdx = -1;
+  try {
+    const week = getPeriodHistory("week") || [];
+    let bestKm = -1;
+    for (const h of week) {
+      const d = new Date(`${h.date}T12:00:00`);
+      const idx = weekdayMonIndex(d);
+      const km = Number(h.km || 0);
+      if (km > bestKm) {
+        bestKm = km;
+        starIdx = idx;
+      }
+    }
+  } catch (_) {}
+
+  cols.forEach((col) => {
+    const idx = Number(col.getAttribute("data-weekday"));
+    col.classList.toggle("weekly-bars__col--on", idx <= todayIdx);
+    col.classList.toggle("weekly-bars__col--today", idx === todayIdx);
+    col.classList.toggle("weekly-bars__col--star", idx === starIdx);
+  });
+}
+
 function dayLabel(iso) {
   const today = todayIso();
   const yesterday = addDays(today, -1);
@@ -206,9 +291,9 @@ function dayLabel(iso) {
 
 function getUserPlan() {
   if (typeof ChodzaPlans !== "undefined") {
-    return ChodzaPlans.normalizePlan(state.subscriptionPlan || (state.premium ? "basic" : "free"));
+    return ChodzaPlans.normalizePlan(state.subscriptionPlan || (state.premium ? "plus" : "free"));
   }
-  return state.subscriptionPlan || (state.premium ? "basic" : "free");
+  return state.subscriptionPlan || (state.premium ? "plus" : "free");
 }
 
 function getPointsForKm(km) {
@@ -230,10 +315,10 @@ function updatePlanNotice() {
   const plusNotice = document.getElementById("plan-plus-notice");
   const plan = getUserPlan();
   if (freeNotice) freeNotice.hidden = plan !== "free";
-  if (plusNotice) plusNotice.hidden = plan !== "plus";
+  if (plusNotice) plusNotice.hidden = plan !== "premium";
 }
 
-const PLAN_RANK = { free: 0, basic: 1, plus: 2 };
+const PLAN_RANK = { free: 0, plus: 1, premium: 2 };
 
 function requestPlanChange(planId) {
   const user = typeof ChodzaAuth !== "undefined" ? ChodzaAuth.getCurrentUser() : null;
@@ -365,7 +450,8 @@ function renderMonthCalendar() {
     const selected = iso === state.selectedCalendarDay;
     const isToday = iso === today;
     const dot = qualifiesGreenDot(km) ? '<span class="calendar-day__dot" aria-hidden="true"></span>' : "";
-    cells += `<button type="button" class="calendar-day${selected ? " calendar-day--selected" : ""}${isToday ? " calendar-day--today" : ""}" data-date="${iso}">${d}${dot}</button>`;
+    const kmText = km != null && km > 0 ? `<span class="calendar-day__km" aria-hidden="true">${km.toFixed(1)}</span>` : "";
+    cells += `<button type="button" class="calendar-day${selected ? " calendar-day--selected" : ""}${isToday ? " calendar-day--today" : ""}" data-date="${iso}"><span class="calendar-day__num">${d}</span>${kmText}${dot}</button>`;
   }
 
   document.getElementById("cal-nav-title").textContent = first.toLocaleDateString(loc(), {
@@ -475,7 +561,6 @@ function isCalendarOpen() {
 function updateRing() {
   const step = state.goalKm;
   const km = state.kmToday;
-  const pointsToday = getPointsForKm(km);
   const len = getTrackPathLength();
 
   const tier1Pct = step > 0 ? Math.min(km / step, 1) : 0;
@@ -488,29 +573,11 @@ function updateRing() {
 
   document.getElementById("km-today").textContent = km.toFixed(1);
 
-  const status = document.getElementById("goal-status");
+  const goalKm = document.getElementById("goal-km");
+  if (goalKm) goalKm.textContent = `${Number(step || 0).toFixed(0)} km`;
 
-  const maxPts = getMaxPointsPerDay();
-  if (pointsToday >= maxPts) {
-    status.textContent = t("ring.maxToday", { max: maxPts });
-    status.style.color = "var(--success)";
-  } else if (pointsToday > 0) {
-    const nextAt = (pointsToday + 1) * step;
-    const left = Math.max(0, nextAt - km).toFixed(1);
-    const mid =
-      ChodzaI18n?.getLang() === "en"
-        ? ` · <span id="km-remaining">${left}</span> km to next`
-        : ` · ešte <span id="km-remaining">${left}</span> km do ďalšieho`;
-    status.innerHTML = `${t("day.today")} <strong>${formatPointsShort(pointsToday)}</strong>${mid}`;
-    status.style.color = "var(--success)";
-  } else {
-    const left = Math.max(0, step - km).toFixed(1);
-    status.innerHTML =
-      ChodzaI18n?.getLang() === "en"
-        ? `<span id="km-remaining">${left}</span> km to 1st point (${step} km = 1 point)`
-        : `Ešte <span id="km-remaining">${left}</span> km do 1. bodu (${step} km = 1 bod)`;
-    status.style.color = "";
-  }
+  const check = document.getElementById("ring-check");
+  if (check) check.classList.toggle("ring__check--active", qualifiesGreenDot(km));
 }
 
 function pluralBody(n) {
@@ -661,7 +728,10 @@ function updateAdminGoalUi() {
   }
 
   const calHint = document.getElementById("calendar-goal-hint");
-  if (calHint) calHint.textContent = t("calendar.hint", { km });
+  const hintText = t("calendar.hint", { km });
+  if (calHint) calHint.textContent = hintText;
+  const tip = document.getElementById("calendar-info-tip");
+  if (tip) tip.textContent = hintText;
 }
 
 function refreshAfterAdminSettings() {
@@ -1021,18 +1091,21 @@ function renderWinners() {
 
 function getPlanDisplayInfo(plan) {
   const isEn = ChodzaI18n?.getLang() === "en";
-  if (plan === "plus") {
+  if (plan === "premium") {
     return {
-      summary: isEn ? "Plus · 7.99 €/mo" : "Plus · 7,99 €/mes.",
+      summary: isEn ? "Premium · 7.99 € / mo" : "Premium · 7,99 € / mes.",
+      chip: isEn ? "Premium 7.99 €" : "Premium 7,99 €",
     };
   }
-  if (plan === "basic") {
+  if (plan === "plus") {
     return {
-      summary: isEn ? "Chôdza · 4.99 €/mo" : "Chôdza · 4,99 €/mes.",
+      summary: isEn ? "Plus · 4.99 € / mo" : "Plus · 4,99 € / mes.",
+      chip: isEn ? "Plus 4.99 €" : "Plus 4,99 €",
     };
   }
   return {
     summary: isEn ? "Free · 0 €" : "Free · 0 €",
+    chip: isEn ? "Free 0 €" : "Free 0 €",
   };
 }
 
@@ -1049,22 +1122,22 @@ function updateProfilePlanDisplay() {
   changes.innerHTML = "";
 
   const options = [];
-  if (plan !== "basic") {
-    options.push({
-      id: "basic",
-      label: plan === "free" ? (isEn ? "4.99 €" : "4,99 €") : isEn ? "Chôdza" : "Chôdza",
-      muted: plan === "plus",
-    });
-  }
   if (plan !== "plus") {
     options.push({
       id: "plus",
-      label: isEn ? "7.99 €" : "7,99 €",
+      label: getPlanDisplayInfo("plus").chip,
+      muted: plan === "premium",
+    });
+  }
+  if (plan !== "premium") {
+    options.push({
+      id: "premium",
+      label: getPlanDisplayInfo("premium").chip,
       muted: false,
     });
   }
   if (plan !== "free") {
-    options.push({ id: "free", label: "Free", muted: true });
+    options.push({ id: "free", label: getPlanDisplayInfo("free").chip, muted: true });
   }
 
   for (const opt of options) {
@@ -1150,6 +1223,9 @@ function showPanel(name) {
     renderWinners();
   } else if (name === "home") {
     document.getElementById("today-date").textContent = formatDateSk(new Date());
+    updateHomeTopbar();
+    updateHomeHeroCards();
+    updateWeeklyBars();
     updateDrawCountdown();
     updatePeriodStats();
   } else if (name === "tickets") {
@@ -1278,14 +1354,12 @@ function applyUserProfile() {
 
   const nameEl = document.getElementById("user-name");
   const emailEl = document.getElementById("user-email");
-  const avatarEl = document.getElementById("user-avatar");
   const nickEl = document.getElementById("user-nick");
   const cityEl = document.getElementById("user-city");
   const ibanEl = document.getElementById("profile-iban");
 
   if (nameEl) nameEl.textContent = ChodzaAuth.displayName(user);
   if (emailEl) emailEl.textContent = user.email;
-  if (avatarEl) avatarEl.textContent = ChodzaAuth.avatarLetter(user);
   if (nickEl) nickEl.textContent = user.username ? `@${user.username}` : "";
   if (cityEl) {
     cityEl.textContent = user.city ? `📍 ${user.city}` : "";
@@ -1299,7 +1373,7 @@ function applyUserProfile() {
   }
   state.premium = !!user.premium;
   state.subscriptionPlan =
-    user.subscriptionPlan || (user.premium ? "basic" : "free");
+    user.subscriptionPlan || (user.premium ? "plus" : "free");
   if (typeof ChodzaPlans !== "undefined") {
     state.subscriptionPlan = ChodzaPlans.normalizePlan(state.subscriptionPlan);
   }
@@ -1308,6 +1382,8 @@ function applyUserProfile() {
   updatePlanNotice();
   updateHealthProfileUi();
   updateAdminGoalUi();
+  updateHomeTopbar();
+  updateHomeHeroCards();
 }
 
 function init() {
@@ -1329,7 +1405,8 @@ function init() {
       const s = JSON.parse(saved);
       if (typeof s.dark === "boolean") {
         document.documentElement.dataset.theme = s.dark ? "dark" : "";
-        document.getElementById("setting-dark").checked = s.dark;
+        const darkEl = document.getElementById("setting-dark");
+        if (darkEl) darkEl.checked = s.dark;
       }
       document.getElementById("setting-notify").checked = s.notify !== false;
       if (s.statsPeriod === "week" || s.statsPeriod === "month") {
@@ -1353,6 +1430,7 @@ function init() {
   updatePlanNotice();
   initHealthSync();
   updateAdminLinkHref();
+  updateWeeklyBars();
 
   syncTodayToHistory();
   updateRing();
@@ -1403,6 +1481,18 @@ function init() {
   document.getElementById("cal-view-month")?.addEventListener("click", () => setCalendarView("month"));
   document.getElementById("cal-view-day")?.addEventListener("click", () => setCalendarView("day"));
 
+  // Calendar info tooltip
+  const infoBtn = document.getElementById("calendar-info-btn");
+  const infoTip = document.getElementById("calendar-info-tip");
+  function hideInfoTip() {
+    infoTip?.classList.add("tooltip--hidden");
+  }
+  infoBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    infoTip?.classList.toggle("tooltip--hidden");
+  });
+  document.addEventListener("click", () => hideInfoTip());
+
   document.getElementById("winners-month-select").addEventListener("change", (e) => {
     state.selectedWinnerMonth = e.target.value;
     renderWinners();
@@ -1423,7 +1513,7 @@ function init() {
     persistSettings();
   });
 
-  document.getElementById("setting-dark").addEventListener("change", (e) => {
+  document.getElementById("setting-dark")?.addEventListener("change", (e) => {
     document.documentElement.dataset.theme = e.target.checked ? "dark" : "";
     persistSettings();
   });
@@ -1493,6 +1583,90 @@ function init() {
     if (typeof ChodzaAuth !== "undefined") ChodzaAuth.clearSession();
     location.href = "welcome.html";
   });
+
+  // Profile edit modal
+  const editBtn = document.getElementById("home-edit-profile");
+  const editModal = document.getElementById("profile-edit-modal");
+  const editBackdrop = document.getElementById("profile-edit-backdrop");
+  const editClose = document.getElementById("profile-edit-close");
+  const editCancel = document.getElementById("profile-edit-cancel");
+  const editSave = document.getElementById("profile-edit-save");
+  const editStatus = document.getElementById("profile-edit-status");
+
+  function openProfileEditModal() {
+    if (!editModal || typeof ChodzaAuth === "undefined") return;
+    const user = ChodzaAuth.getCurrentUser();
+    if (!user) return;
+    document.getElementById("edit-firstName").value = user.firstName || "";
+    document.getElementById("edit-lastName").value = user.lastName || "";
+    document.getElementById("edit-email").value = user.email || "";
+    document.getElementById("edit-username").value = user.username ? `@${user.username}` : "";
+    document.getElementById("edit-city").value = user.city || "";
+    document.getElementById("edit-phone").value = user.phone || "";
+    if (editStatus) editStatus.textContent = "";
+    editModal.hidden = false;
+  }
+
+  function closeProfileEditModal() {
+    if (editModal) editModal.hidden = true;
+  }
+
+  editBtn?.addEventListener("click", () => {
+    showPanel("profile");
+    openProfileEditModal();
+  });
+  editBackdrop?.addEventListener("click", closeProfileEditModal);
+  editClose?.addEventListener("click", closeProfileEditModal);
+  editCancel?.addEventListener("click", closeProfileEditModal);
+
+  editSave?.addEventListener("click", () => {
+    if (typeof ChodzaAuth === "undefined") return;
+    const user = ChodzaAuth.getCurrentUser();
+    if (!user) return;
+    const patch = {
+      firstName: String(document.getElementById("edit-firstName").value || "").trim(),
+      lastName: String(document.getElementById("edit-lastName").value || "").trim(),
+      city: String(document.getElementById("edit-city").value || "").trim(),
+      phone: String(document.getElementById("edit-phone").value || "").trim(),
+    };
+    const res = ChodzaAuth.updateProfile(user.email, patch);
+    if (!res?.ok) {
+      if (editStatus) editStatus.textContent = "Nepodarilo sa uložiť.";
+      return;
+    }
+    applyUserProfile();
+    updateHomeTopbar();
+    if (editStatus) editStatus.textContent = "Uložené ✓";
+    setTimeout(() => closeProfileEditModal(), 450);
+  });
+
+  // Avatar picker (tap avatar -> gallery/camera)
+  const avatarInput = document.getElementById("avatar-file");
+  function openAvatarPicker() {
+    avatarInput?.click();
+  }
+  document.getElementById("home-avatar")?.addEventListener("click", openAvatarPicker);
+
+  avatarInput?.addEventListener("change", () => {
+    if (typeof ChodzaAuth === "undefined") return;
+    const user = ChodzaAuth.getCurrentUser();
+    const file = avatarInput.files?.[0];
+    if (!user || !file) return;
+    if (!file.type?.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      if (!dataUrl.startsWith("data:image/")) return;
+      // store in user record (localStorage via auth-store)
+      ChodzaAuth.updateProfile(user.email, { avatarDataUrl: dataUrl });
+      applyUserProfile();
+      updateHomeTopbar();
+      // allow selecting same file again
+      avatarInput.value = "";
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function persistSettings() {
@@ -1505,7 +1679,7 @@ function persistSettings() {
     "chodza-settings",
     JSON.stringify({
       ...prev,
-      dark: document.getElementById("setting-dark").checked,
+      dark: document.getElementById("setting-dark")?.checked === true,
       notify: document.getElementById("setting-notify").checked,
       statsPeriod: state.statsPeriod,
       lang: typeof ChodzaI18n !== "undefined" ? ChodzaI18n.getLang() : prev.lang,

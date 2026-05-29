@@ -5,7 +5,7 @@ create table public.users (
   meno text not null,
   email text unique not null,
   subscription_plan text not null default 'free'
-    check (subscription_plan in ('free', 'basic', 'plus')),
+    check (subscription_plan in ('free', 'plus', 'premium')),
   status_predplatneho text not null default 'free'
     check (status_predplatneho in ('free', 'premium', 'plus', 'cancelled')),
   stripe_customer_id text,

@@ -1,5 +1,5 @@
 /**
- * Balíky predplatného: free, basic (4,99 €), plus (7,99 €)
+ * Balíky predplatného: free, plus (4,99 €), premium (7,99 €)
  */
 (function (root) {
   const PLANS = {
@@ -11,21 +11,21 @@
       pityBase: 1.5,
       theme: "free",
     },
-    basic: {
-      id: "basic",
+    plus: {
+      id: "plus",
       priceEur: 4.99,
       pointsMultiplier: 1,
       eligibleForDraw: true,
       pityBase: 1.5,
-      theme: "basic",
+      theme: "plus",
     },
-    plus: {
-      id: "plus",
+    premium: {
+      id: "premium",
       priceEur: 7.99,
       pointsMultiplier: 2,
       eligibleForDraw: true,
       pityBase: 1.5,
-      theme: "plus",
+      theme: "premium",
     },
   };
 
@@ -34,14 +34,15 @@
   }
 
   function normalizePlan(planId) {
-    if (planId === "basic" || planId === "plus" || planId === "free") return planId;
-    if (planId === "premium") return "basic";
+    if (planId === "plus" || planId === "premium" || planId === "free") return planId;
+    // migrácia starých názvov
+    if (planId === "basic") return "plus";
     return "free";
   }
 
   function isPayingPlan(planId) {
     const p = normalizePlan(planId);
-    return p === "basic" || p === "plus";
+    return p === "plus" || p === "premium";
   }
 
   function isDrawEligible(planId) {
@@ -66,19 +67,22 @@
   }
 
   function countPayingUsers(users) {
-    let basic = 0;
     let plus = 0;
+    let premium = 0;
     for (const u of users) {
-      const plan = normalizePlan(u.subscriptionPlan || (u.status_predplatneho === "premium" ? "basic" : "free"));
-      if (plan === "basic") basic += 1;
-      else if (plan === "plus") plus += 1;
+      const plan = normalizePlan(
+        u.subscriptionPlan ||
+          (u.status_predplatneho === "premium" ? "premium" : u.status_predplatneho === "plus" ? "premium" : "free")
+      );
+      if (plan === "plus") plus += 1;
+      else if (plan === "premium") premium += 1;
     }
-    return { basic, plus, total: basic + plus };
+    return { plus, premium, total: plus + premium };
   }
 
   function monthlyRevenueFromUsers(users) {
-    const { basic, plus } = countPayingUsers(users);
-    return basic * PLANS.basic.priceEur + plus * PLANS.plus.priceEur;
+    const { plus, premium } = countPayingUsers(users);
+    return plus * PLANS.plus.priceEur + premium * PLANS.premium.priceEur;
   }
 
   root.ChodzaPlans = {

@@ -32,11 +32,16 @@ function applyAdminLanguage() {
 function userPlan(u) {
   if (typeof ChodzaPlans !== "undefined") {
     return ChodzaPlans.normalizePlan(
-      u.subscriptionPlan || (u.status_predplatneho === "premium" ? "basic" : u.status_predplatneho)
+      u.subscriptionPlan ||
+        (u.status_predplatneho === "premium"
+          ? "premium"
+          : u.status_predplatneho === "plus"
+            ? "premium"
+            : u.status_predplatneho)
     );
   }
   if (u.subscriptionPlan === "plus") return "plus";
-  if (u.subscriptionPlan === "basic" || u.status_predplatneho === "premium") return "basic";
+  if (u.subscriptionPlan === "premium" || u.status_predplatneho === "premium") return "premium";
   return "free";
 }
 
@@ -93,11 +98,11 @@ function resolvePrizeConfig(settings, users) {
 
 function formatPayingPlansSummary(users, isEn) {
   if (typeof ChodzaPlans === "undefined") return null;
-  const { basic, plus } = ChodzaPlans.countPayingUsers(users);
-  if (!basic && !plus) return isEn ? "no paying subscribers" : "žiadni platiaci";
+  const { plus, premium } = ChodzaPlans.countPayingUsers(users);
+  if (!plus && !premium) return isEn ? "no paying subscribers" : "žiadni platiaci";
   const parts = [];
-  if (basic) parts.push(isEn ? `${basic}×4.99 €` : `${basic}×4,99 €`);
-  if (plus) parts.push(isEn ? `${plus}×7.99 €` : `${plus}×7,99 €`);
+  if (plus) parts.push(isEn ? `${plus}×4.99 €` : `${plus}×4,99 €`);
+  if (premium) parts.push(isEn ? `${premium}×7.99 €` : `${premium}×7,99 €`);
   return parts.join(isEn ? " + " : " + ");
 }
 
@@ -194,12 +199,14 @@ function shortId(id) {
 function subscriptionLabel(userOrStatus) {
   if (userOrStatus && typeof userOrStatus === "object") {
     const plan = userPlan(userOrStatus);
-    if (plan === "plus") return "Plus 7,99 €";
-    if (plan === "basic") return "Chôdza 4,99 €";
+    if (plan === "premium") return "Premium 7,99 €";
+    if (plan === "plus") return "Plus 4,99 €";
     return "Free";
   }
-  if (userOrStatus === "plus") return "Plus 7,99 €";
-  if (userOrStatus === "premium" || userOrStatus === "basic") return "Chôdza 4,99 €";
+  if (userOrStatus === "premium") return "Premium 7,99 €";
+  // staré hodnoty
+  if (userOrStatus === "basic") return "Plus 4,99 €";
+  if (userOrStatus === "plus") return "Premium 7,99 €";
   if (userOrStatus === "cancelled") return "Zrušené";
   return "Free";
 }
@@ -553,13 +560,7 @@ function seedMockUsers() {
 
   return ids.map(([id, meno, email, status], i) => {
     const plan =
-      status === "plus"
-        ? "plus"
-        : status === "premium"
-          ? "basic"
-          : status === "free"
-            ? "free"
-            : "free";
+      status === "premium" ? "premium" : status === "plus" ? "plus" : "free";
     const dailyWalks = buildDemoWalks(i, goal, plan);
     const mesacneBody = dailyWalks.reduce((s, d) => s + d.body, 0);
     const celkoveBody = 40 + mesacneBody + i * 7;
@@ -569,7 +570,8 @@ function seedMockUsers() {
       meno,
       email,
       subscriptionPlan: plan,
-      status_predplatneho: plan === "free" ? "free" : plan === "plus" ? "plus" : status === "cancelled" ? "cancelled" : "premium",
+      status_predplatneho:
+        status === "cancelled" ? "cancelled" : plan === "free" ? "free" : "premium",
       mesacneBody,
       celkoveBody,
       streak_of_loss: streakSamples[i % streakSamples.length],
@@ -588,7 +590,7 @@ function buildDemoWalks(seed, goalKm, planId) {
   const walks = [];
   for (let d = 1; d <= days; d++) {
     const km = Math.max(0, ((seed * 3 + d * 7) % 35) + (d % 5) * 2.3);
-    const body = pointsFromKm(km, goalKm, 3, planId || "basic");
+    const body = pointsFromKm(km, goalKm, 3, planId || "plus");
     walks.push({
       datum: `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
       kilometre: Math.round(km * 10) / 10,
@@ -680,7 +682,7 @@ const MockStore = {
       const user = users.find((u) => u.id === w.userId);
       if (!user) continue;
       if (w.prizeType === "premium_month") {
-        user.subscriptionPlan = "basic";
+        user.subscriptionPlan = "plus";
         user.premium = true;
         user.premiumGrantedMonth = monthKey;
       }
@@ -985,7 +987,7 @@ function renderUsersTable() {
     const tr = document.createElement("tr");
     const plan = userPlan(u);
     const subClass =
-      plan === "plus" ? "badge--plus" : plan === "basic" ? "badge--active" : "badge--inactive";
+      plan === "premium" ? "badge--plus" : plan === "plus" ? "badge--active" : "badge--inactive";
     const isNew = isUnseenRegistration(u);
     const isReg = isRegisteredUser(u);
     if (isNew) tr.classList.add("admin-table__row--new");

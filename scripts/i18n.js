@@ -12,7 +12,8 @@
     sk: {
       "app.title": "Chôdza",
       "nav.home": "Dnes",
-      "nav.tickets": "Moje body",
+      "nav.tickets": "Výzvy",
+      "nav.badges": "Odznaky",
       "nav.winners": "Výhercovia",
       "nav.profile": "Profil",
       "nav.aria": "Hlavná navigácia",
@@ -109,7 +110,8 @@
     en: {
       "app.title": "Walk",
       "nav.home": "Today",
-      "nav.tickets": "My points",
+      "nav.tickets": "Challenges",
+      "nav.badges": "Badges",
       "nav.winners": "Winners",
       "nav.profile": "Profile",
       "nav.aria": "Main navigation",

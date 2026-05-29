@@ -759,6 +759,96 @@ function renderBadges(s) {
         </div>`
     )
     .join("");
+
+  const doneCount = items.filter((b) => b.done).length;
+  setTextById("badges-hero-title", achLang("Tvoja zbierka odznakov", "Your badge collection"));
+  setTextById(
+    "badges-hero-sub",
+    achLang(`${doneCount} / ${items.length} odomknutých`, `${doneCount} / ${items.length} unlocked`)
+  );
+}
+
+function openBadgeOverlay(badgeEl) {
+  const overlay = document.getElementById("badge-overlay");
+  const card = document.getElementById("badge-overlay-card");
+  if (!overlay || !card) return;
+
+  const img = badgeEl.querySelector(".badge__img");
+  const title = badgeEl.querySelector(".badge__title")?.textContent || "";
+  const desc = badgeEl.querySelector(".badge__desc")?.textContent || "";
+  const done = badgeEl.classList.contains("badge--done");
+
+  const oImg = document.getElementById("badge-overlay-img");
+  if (oImg && img) oImg.src = img.src;
+  setTextById("badge-overlay-title", title);
+  setTextById("badge-overlay-desc", desc);
+  setTextById(
+    "badge-overlay-status",
+    done ? achLang("✅ Získané", "✅ Earned") : achLang("🔒 Ešte nezískané", "🔒 Not earned yet")
+  );
+
+  overlay.classList.toggle("badge-overlay--locked", !done);
+  overlay.hidden = false;
+  card.classList.remove("badge-overlay__card--in");
+  void card.offsetWidth; // reštart animácie
+  card.classList.add("badge-overlay__card--in");
+}
+
+function closeBadgeOverlay() {
+  const overlay = document.getElementById("badge-overlay");
+  if (overlay && !overlay.hidden) overlay.hidden = true;
+}
+
+function getAvailableChallenges() {
+  return [
+    { id: "kamzik", icon: "🐐", title: achLang("Tatranský kamzík", "Tatra chamois"), desc: achLang("Prejdi 15 km za jeden deň", "Walk 15 km in one day") },
+    { id: "vikend", icon: "⛰️", title: achLang("Víkendový bojovník", "Weekend warrior"), desc: achLang("Cez víkend prejdi 30 km", "Walk 30 km over the weekend") },
+    { id: "ranne-vtaca", icon: "🌅", title: achLang("Ranné vtáča", "Early bird"), desc: achLang("7 dní po sebe splň cieľ", "Hit your goal 7 days in a row") },
+    { id: "stovka", icon: "💯", title: achLang("Stovka za mesiac", "Hundred a month"), desc: achLang("Prejdi 100 km tento mesiac", "Walk 100 km this month") },
+  ];
+}
+
+function getAcceptedChallenges() {
+  try {
+    return JSON.parse(localStorage.getItem("chodza-accepted-challenges") || "[]");
+  } catch (_) {
+    return [];
+  }
+}
+
+function setAcceptedChallenges(ids) {
+  try {
+    localStorage.setItem("chodza-accepted-challenges", JSON.stringify(ids));
+  } catch (_) {}
+}
+
+function toggleAcceptedChallenge(id) {
+  const accepted = getAcceptedChallenges();
+  const idx = accepted.indexOf(id);
+  if (idx >= 0) accepted.splice(idx, 1);
+  else accepted.push(id);
+  setAcceptedChallenges(accepted);
+  renderAvailableChallenges();
+}
+
+function renderAvailableChallenges() {
+  const host = document.getElementById("ach-available");
+  if (!host) return;
+  const accepted = getAcceptedChallenges();
+
+  host.innerHTML = getAvailableChallenges().map((c) => {
+    const isOn = accepted.includes(c.id);
+    const btnLabel = isOn ? achLang("Prijaté ✓", "Accepted ✓") : achLang("Prijať", "Accept");
+    return `
+      <div class="avail${isOn ? " avail--on" : ""}">
+        <span class="avail__icon">${c.icon}</span>
+        <div class="avail__text">
+          <span class="avail__title">${c.title}</span>
+          <span class="avail__desc">${c.desc}</span>
+        </div>
+        <button type="button" class="avail__btn${isOn ? " avail__btn--on" : ""}" data-challenge="${c.id}">${btnLabel}</button>
+      </div>`;
+  }).join("");
 }
 
 function renderTickets() {
@@ -787,10 +877,11 @@ function renderTickets() {
       `${toNext} points to level ${level + 1}`
     )
   );
-  setTextById("ach-challenges-title", achLang("Aktívne výzvy", "Active challenges"));
-  setTextById("ach-badges-title", achLang("Odznaky", "Badges"));
+  setTextById("ach-challenges-title", achLang("Moje aktívne výzvy", "My active challenges"));
+  setTextById("ach-available-title", achLang("Dostupné výzvy na prijatie", "Challenges to accept"));
 
   renderChallenges(s);
+  renderAvailableChallenges();
   renderBadges(s);
 }
 
@@ -1333,12 +1424,13 @@ function showPanel(name) {
     n.classList.toggle("nav__item--active", n.dataset.panel === name);
   });
 
-  document.querySelector(".header")?.classList.toggle("header--tickets", name === "tickets");
-  document.querySelector(".main")?.classList.toggle("main--tickets", name === "tickets");
+  const isAch = name === "tickets" || name === "badges";
+  document.querySelector(".header")?.classList.toggle("header--tickets", isAch);
+  document.querySelector(".main")?.classList.toggle("main--tickets", isAch);
 
   document.getElementById("page-title").textContent = t(`nav.${name}`);
 
-  if (name === "home" || name === "tickets" || name === "profile") {
+  if (name === "home" || name === "tickets" || name === "badges" || name === "profile") {
     refreshAfterAdminSettings();
   }
 
@@ -1630,6 +1722,24 @@ function init() {
 
   document.querySelectorAll(".nav__item").forEach((btn) => {
     btn.addEventListener("click", () => showPanel(btn.dataset.panel));
+  });
+
+  document.getElementById("ach-available")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-challenge]");
+    if (btn) toggleAcceptedChallenge(btn.dataset.challenge);
+  });
+
+  document.getElementById("ach-badges")?.addEventListener("click", (e) => {
+    const badge = e.target.closest(".badge");
+    if (badge) openBadgeOverlay(badge);
+  });
+
+  document.getElementById("badge-overlay-backdrop")?.addEventListener("click", closeBadgeOverlay);
+  document.getElementById("badge-overlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "badge-overlay") closeBadgeOverlay();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeBadgeOverlay();
   });
 
   document.getElementById("sync-btn").addEventListener("click", () => runKmSync(true));

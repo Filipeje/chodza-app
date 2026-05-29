@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#558352" />
     <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css?v=game57" />
+    <link rel="stylesheet" href="styles.css?v=game60" />
     <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
@@ -229,10 +229,18 @@
             <p class="level-card__next" id="ach-level-next">Do ďalšieho levelu ti chýba 50 bodov</p>
           </div>
 
-          <h2 class="ach-heading" id="ach-challenges-title">Aktívne výzvy</h2>
+          <h2 class="ach-heading" id="ach-challenges-title">Moje aktívne výzvy</h2>
           <div class="challenges" id="ach-challenges"></div>
 
-          <h2 class="ach-heading" id="ach-badges-title">Odznaky</h2>
+          <h2 class="ach-heading" id="ach-available-title">Dostupné výzvy na prijatie</h2>
+          <div class="available-challenges" id="ach-available"></div>
+        </section>
+
+        <section class="panel panel--badges" id="panel-badges" aria-labelledby="nav-badges" hidden>
+          <div class="badges-hero">
+            <h2 class="badges-hero__title" id="badges-hero-title">Tvoja zbierka odznakov</h2>
+            <p class="badges-hero__sub" id="badges-hero-sub">0 / 9 odomknutých</p>
+          </div>
           <div class="badges" id="ach-badges"></div>
         </section>
 
@@ -320,8 +328,12 @@
           <span class="nav__label" data-i18n="nav.home">Dnes</span>
         </button>
         <button type="button" class="nav__item" id="nav-tickets" data-panel="tickets">
-          <span class="nav__icon" aria-hidden="true">★</span>
-          <span class="nav__label" data-i18n="nav.tickets">Moje body</span>
+          <span class="nav__icon" aria-hidden="true">⚡</span>
+          <span class="nav__label" data-i18n="nav.tickets">Výzvy</span>
+        </button>
+        <button type="button" class="nav__item" id="nav-badges" data-panel="badges">
+          <span class="nav__icon" aria-hidden="true">🎖️</span>
+          <span class="nav__label" data-i18n="nav.badges">Odznaky</span>
         </button>
         <button type="button" class="nav__item" id="nav-winners" data-panel="winners">
           <span class="nav__icon" aria-hidden="true">🏆</span>
@@ -332,6 +344,16 @@
           <span class="nav__label" data-i18n="nav.profile">Profil</span>
         </button>
       </nav>
+    </div>
+
+    <div class="badge-overlay" id="badge-overlay" hidden>
+      <div class="badge-overlay__backdrop" id="badge-overlay-backdrop"></div>
+      <div class="badge-overlay__card" id="badge-overlay-card">
+        <img class="badge-overlay__img" id="badge-overlay-img" alt="" />
+        <h3 class="badge-overlay__title" id="badge-overlay-title"></h3>
+        <p class="badge-overlay__desc" id="badge-overlay-desc"></p>
+        <p class="badge-overlay__status" id="badge-overlay-status"></p>
+      </div>
     </div>
 
     <div class="history-modal" id="calendar-modal" hidden>
@@ -434,6 +456,6 @@
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/health-sync.js?v=2"></script>
-    <script src="app.js?v=29"></script>
+    <script src="app.js?v=32"></script>
   </body>
 </html>

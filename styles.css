@@ -2487,8 +2487,9 @@ html[data-plan="premium"] .winners-neon {
   font-size: 1.25rem;
 }
 
-/* ===== Moje body: Level + Výzvy + Odznaky ===== */
-.panel--tickets {
+/* ===== Výzvy + Odznaky ===== */
+.panel--tickets,
+.panel--badges {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
@@ -2640,6 +2641,7 @@ html[data-plan="premium"] .winners-neon {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
+  perspective: 900px;
 }
 
 .badge {
@@ -2653,6 +2655,126 @@ html[data-plan="premium"] .winners-neon {
   border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .badge:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+    border-color: rgba(0, 230, 118, 0.45);
+  }
+}
+
+.badge:active {
+  transform: scale(0.97);
+}
+
+/* Overlay s detailom odznaku (zoom do stredu + 3D otočenie) */
+.badge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  perspective: 1100px;
+}
+
+.badge-overlay[hidden] {
+  display: none;
+}
+
+.badge-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: badgeBackdropIn 0.25s ease;
+}
+
+.badge-overlay__card {
+  position: relative;
+  z-index: 1;
+  width: min(80vw, 300px);
+  padding: 1.8rem 1.4rem 1.5rem;
+  border-radius: 22px;
+  background: var(--surface-2);
+  border: 1px solid rgba(0, 230, 118, 0.45);
+  box-shadow: 0 0 44px rgba(0, 230, 118, 0.28), var(--glass-shadow);
+  text-align: center;
+  transform-style: preserve-3d;
+}
+
+.badge-overlay--locked .badge-overlay__card {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), var(--glass-shadow);
+}
+
+.badge-overlay__card--in {
+  animation: badgeZoomFlip 0.85s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.badge-overlay__img {
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+
+.badge-overlay--locked .badge-overlay__img {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.badge-overlay__title {
+  margin: 0.7rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.badge-overlay__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.badge-overlay__status {
+  margin: 0.85rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.badge-overlay--locked .badge-overlay__status {
+  color: var(--text-muted);
+}
+
+@keyframes badgeBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes badgeZoomFlip {
+  0% {
+    transform: scale(0.25) rotateY(0deg);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.12) rotateY(360deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotateY(360deg);
+    opacity: 1;
+  }
 }
 
 .badge__img {
@@ -2693,4 +2815,98 @@ html[data-plan="premium"] .winners-neon {
 
 .badge--locked .badge__img {
   filter: grayscale(1) brightness(0.8);
+}
+
+/* Dostupné výzvy na prijatie */
+.available-challenges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.avail {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+}
+
+.avail--on {
+  border-color: rgba(0, 230, 118, 0.55);
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.16);
+}
+
+.avail__icon {
+  flex: none;
+  font-size: 1.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.avail__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.avail__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.avail__desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.avail__btn {
+  flex: none;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent-light);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.avail__btn:hover {
+  background: rgba(0, 230, 118, 0.12);
+}
+
+.avail__btn--on {
+  background: var(--accent);
+  color: #04140a;
+  border-color: var(--accent);
+}
+
+/* Galéria odznakov (záložka Odznaky) */
+.badges-hero {
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+
+.badges-hero__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.badges-hero__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-light);
 }

@@ -2699,7 +2699,9 @@ html[data-plan="premium"] .winners-neon {
 .badge-overlay__card {
   position: relative;
   z-index: 1;
-  width: min(80vw, 300px);
+  width: min(82vw, 320px);
+  max-height: 86vh;
+  overflow-y: auto;
   padding: 1.8rem 1.4rem 1.5rem;
   border-radius: 22px;
   background: var(--surface-2);
@@ -2716,6 +2718,14 @@ html[data-plan="premium"] .winners-neon {
 
 .badge-overlay__card--in {
   animation: badgeZoomFlip 0.85s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.badge-overlay__card--out {
+  animation: badgeZoomFlipOut 0.5s cubic-bezier(0.4, 0, 0.7, 0.2) forwards;
+}
+
+.badge-overlay--closing .badge-overlay__backdrop {
+  animation: badgeBackdropOut 0.5s ease forwards;
 }
 
 .badge-overlay__img {
@@ -2753,12 +2763,47 @@ html[data-plan="premium"] .winners-neon {
   color: var(--text-muted);
 }
 
+.badge-overlay__fact {
+  margin: 0.9rem 0 0;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: rgba(226, 232, 240, 0.92);
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px solid rgba(0, 230, 118, 0.22);
+  border-radius: 12px;
+}
+
+.badge-overlay__fact:empty {
+  display: none;
+}
+
 @keyframes badgeBackdropIn {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes badgeBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes badgeZoomFlipOut {
+  0% {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.25) rotateY(-360deg);
+    opacity: 0;
   }
 }
 

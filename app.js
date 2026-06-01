@@ -738,21 +738,104 @@ function renderBadges(s) {
   if (!host) return;
 
   const items = [
-    { img: "step-shoe", title: achLang("Prvé kroky", "First steps"), desc: achLang("Zaznamenaj prvý deň", "Log your first day"), done: s.activeDays >= 1 },
-    { img: "star", title: achLang("Stovkár", "Centurion"), desc: achLang("Získaj 100 bodov", "Earn 100 points"), done: s.totalPoints >= 100 },
-    { img: "club100", title: achLang("Klub 100 km", "100 km club"), desc: achLang("Prejdi spolu 100 km", "Walk 100 km total"), done: s.totalKm >= 100 },
-    { img: "club500", title: achLang("Klub 500 km", "500 km club"), desc: achLang("Prejdi spolu 500 km", "Walk 500 km total"), done: s.totalKm >= 500 },
-    { img: "club1000", title: achLang("Klub 1000 km", "1000 km club"), desc: achLang("Prejdi spolu 1000 km", "Walk 1000 km total"), done: s.totalKm >= 1000 },
-    { img: "marathon", title: achLang("Maratónec", "Marathoner"), desc: achLang("42 km za jeden deň", "42 km in one day"), done: s.bestDayKm >= 42 },
-    { img: "week", title: achLang("Týždeň v kuse", "Full week"), desc: achLang("7-dňová séria cieľov", "7-day goal streak"), done: s.longestStreak >= 7 },
-    { img: "endurance", title: achLang("Vytrvalec", "Endurance"), desc: achLang("30 aktívnych dní", "30 active days"), done: s.activeDays >= 30 },
-    { img: "month", title: achLang("Mesačný bojovník", "Month warrior"), desc: achLang("30-dňová séria cieľov", "30-day goal streak"), done: s.longestStreak >= 30 },
+    {
+      img: "step-shoe",
+      title: achLang("Prvé kroky", "First steps"),
+      desc: achLang("Zaznamenaj prvý deň", "Log your first day"),
+      done: s.activeDays >= 1,
+      fact: achLang(
+        "Každá veľká cesta začína prvým krokom – a ty si ho práve spravil! Už len pravidelná chôdza dokáže zlepšiť náladu, spánok aj sústredenie. Väčšina ľudí to nikdy nezačne, ty áno. Drž sa, najťažší býva práve ten prvý deň.",
+        "Every great journey begins with a single step – and you just took it! Regular walking alone can boost your mood, sleep and focus. Most people never even start; you did. Keep going – the first day is the hardest."
+      ),
+    },
+    {
+      img: "star",
+      title: achLang("Stovkár", "Centurion"),
+      desc: achLang("Získaj 100 bodov", "Earn 100 points"),
+      done: s.totalPoints >= 100,
+      fact: achLang(
+        "100 bodov je veľká méta! Väčšina ľudí to s novým návykom vzdá už v prvom týždni, ty si vydržal a zbieraš ďalej. Každý bod znamená reálne prejdené kilometre, lepšiu kondíciu a silnejšie srdce. Si dôkaz, že disciplína sa vypláca.",
+        "100 points is a big milestone! Most people drop a new habit within the first week – you stuck with it and keep collecting. Every point means real kilometres walked, better fitness and a stronger heart. You're proof that consistency pays off."
+      ),
+    },
+    {
+      img: "club100",
+      title: achLang("Klub 100 km", "100 km club"),
+      desc: achLang("Prejdi spolu 100 km", "Walk 100 km total"),
+      done: s.totalKm >= 100,
+      fact: achLang(
+        "100 km pešo – to je ako prejsť z Bratislavy do Trnavy a späť, len pomocou vlastných nôh! Pri takomto objeme chôdze telo spáli tisíce kalórií a výrazne sa zlepší vytrvalosť. Tvoje srdce, kĺby aj hlava ti za to ďakujú. A toto je len začiatok – ďalšia méta je 500 km.",
+        "100 km on foot – that's like walking from one city to the next and back, all on your own legs! That much walking burns thousands of calories and noticeably boosts stamina. Your heart, joints and mind all thank you. And this is just the start – the next milestone is 500 km."
+      ),
+    },
+    {
+      img: "club500",
+      title: achLang("Klub 500 km", "500 km club"),
+      desc: achLang("Prejdi spolu 500 km", "Walk 500 km total"),
+      done: s.totalKm >= 500,
+      fact: achLang(
+        "500 km – to je vzdialenosť skoro cez celé Slovensko! Štúdie ukazujú, že pravidelná chôdza dokáže znížiť riziko ochorení srdca a cukrovky až o tretinu. Pri takomto nálete kilometrov si si vybudoval kondíciu, o akej väčšina ľudí len sníva. Polovica cesty do tisíckového klubu je za tebou.",
+        "500 km – almost the length of an entire country! Studies show regular walking can cut the risk of heart disease and diabetes by up to a third. With this many kilometres you've built fitness most people only dream of. You're halfway to the 1000 km club."
+      ),
+    },
+    {
+      img: "club1000",
+      title: achLang("Klub 1000 km", "1000 km club"),
+      desc: achLang("Prejdi spolu 1000 km", "Walk 1000 km total"),
+      done: s.totalKm >= 1000,
+      fact: achLang(
+        "1000 km! To je vzdialenosť z Bratislavy do Paríža – a ty si ju prešiel po vlastných! Patríš do chodeckej elity, ktorú dosiahne naozaj len málokto. Tvoje telo je teraz odolnejšie, srdce silnejšie a myseľ otužilejšia. Toto už nie je len návyk, toto je životný štýl šampióna.",
+        "1000 km! That's the distance from Bratislava to Paris – and you walked it on your own two feet! You belong to a walking elite very few ever reach. Your body is now more resilient, your heart stronger and your mind tougher. This isn't just a habit anymore – it's a champion's lifestyle."
+      ),
+    },
+    {
+      img: "marathon",
+      title: achLang("Maratónec", "Marathoner"),
+      desc: achLang("42 km za jeden deň", "42 km in one day"),
+      done: s.bestDayKm >= 42,
+      fact: achLang(
+        "42 km za jediný deň – to je dĺžka klasického maratónu, ktorý zvládne len malé percento ľudí na svete! Takýto výkon si vyžaduje pevnú vôľu a výbornú kondíciu. Telo pri ňom prekoná hranice, o ktorých väčšina ani nesníva. Buď na seba poriadne hrdý – toto je métla šampiónov.",
+        "42 km in a single day – that's the length of a full marathon, something only a small percentage of people worldwide ever achieve! Such a feat takes real willpower and excellent fitness. Your body pushed past limits most people never imagine. Be truly proud – this is a champion's mark."
+      ),
+    },
+    {
+      img: "week",
+      title: achLang("Týždeň v kuse", "Full week"),
+      desc: achLang("7-dňová séria cieľov", "7-day goal streak"),
+      done: s.longestStreak >= 7,
+      fact: achLang(
+        "7 dní v rade je presne ten moment, keď sa z odhodlania začína stávať návyk! Mozog si vytvára nové spojenia a pohyb sa pomaly mení na automatickú súčasť dňa. Hovorí sa, že vytrvalosť nakoniec poráža aj talent. Vydrž ďalej – ďalšou métou je celý mesiac.",
+        "7 days in a row is exactly when determination starts turning into a habit! Your brain forms new connections and movement slowly becomes an automatic part of your day. They say consistency beats talent in the long run. Keep going – the next milestone is a full month."
+      ),
+    },
+    {
+      img: "endurance",
+      title: achLang("Vytrvalec", "Endurance"),
+      desc: achLang("30 aktívnych dní", "30 active days"),
+      done: s.activeDays >= 30,
+      fact: achLang(
+        "30 aktívnych dní! Pohyb sa ti stal prirodzenou súčasťou života – a presne takto vznikajú zdravé návyky na celý život. Pravidelná aktivita znižuje stres, zlepšuje spánok a dodáva energiu na celý deň. Už nemusíš premýšľať, či ísť von – jednoducho ideš. To je obrovský posun, ktorý ti môže každý závidieť.",
+        "30 active days! Movement has become a natural part of your life – and that's exactly how lifelong healthy habits are born. Regular activity lowers stress, improves sleep and gives you all‑day energy. You no longer debate whether to go out – you just go. That's a huge shift many people would envy."
+      ),
+    },
+    {
+      img: "month",
+      title: achLang("Mesačný bojovník", "Month warrior"),
+      desc: achLang("30-dňová séria cieľov", "30-day goal streak"),
+      done: s.longestStreak >= 30,
+      fact: achLang(
+        "30 dní bez jediného prerušenia – takúto disciplínu udrží naozaj len hŕstka ľudí! Dokázal si, že máš železnú vôľu a že na sebe dokážeš pracovať aj vtedy, keď sa nechce. Tento návyk ti bude vracať energiu a zdravie ešte roky. Si v tom najlepšom 1 % vytrvalcov – klobúk dole!",
+        "30 days without a single break – only a tiny handful of people can keep that up! You've proven you have an iron will and can work on yourself even when you don't feel like it. This habit will repay you with energy and health for years. You're in the top 1% of the persistent – hats off!"
+      ),
+    },
   ];
+
+  const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
   host.innerHTML = items
     .map(
       (b) => `
-        <div class="badge${b.done ? " badge--done" : " badge--locked"}">
+        <div class="badge${b.done ? " badge--done" : " badge--locked"}" data-fact="${esc(b.fact)}">
           <img class="badge__img" src="assets/badges/${b.img}.png?v=2" alt="" />
           <span class="badge__title">${b.title}</span>
           <span class="badge__desc">${b.desc}</span>
@@ -786,6 +869,7 @@ function openBadgeOverlay(badgeEl) {
     "badge-overlay-status",
     done ? achLang("✅ Získané", "✅ Earned") : achLang("🔒 Ešte nezískané", "🔒 Not earned yet")
   );
+  setTextById("badge-overlay-fact", badgeEl.dataset.fact || "");
 
   overlay.classList.toggle("badge-overlay--locked", !done);
   overlay.hidden = false;
@@ -796,7 +880,26 @@ function openBadgeOverlay(badgeEl) {
 
 function closeBadgeOverlay() {
   const overlay = document.getElementById("badge-overlay");
-  if (overlay && !overlay.hidden) overlay.hidden = true;
+  const card = document.getElementById("badge-overlay-card");
+  if (!overlay || overlay.hidden) return;
+  if (overlay.classList.contains("badge-overlay--closing")) return;
+  if (!card) {
+    overlay.hidden = true;
+    return;
+  }
+
+  card.classList.remove("badge-overlay__card--in");
+  card.classList.add("badge-overlay__card--out");
+  overlay.classList.add("badge-overlay--closing");
+
+  const finish = () => {
+    overlay.hidden = true;
+    card.classList.remove("badge-overlay__card--out");
+    overlay.classList.remove("badge-overlay--closing");
+    card.removeEventListener("animationend", finish);
+  };
+  card.addEventListener("animationend", finish);
+  setTimeout(finish, 600); // poistka, ak by animationend nezbehol
 }
 
 function getAvailableChallenges() {

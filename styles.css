@@ -821,7 +821,7 @@ body::before {
 }
 
 .health-sync-status--profile {
-  margin: 0.35rem 0 0.5rem;
+  margin: 0.1rem 0 0.2rem;
   width: 100%;
   text-align: left;
 }
@@ -829,7 +829,7 @@ body::before {
 .setting--stacked {
   flex-direction: column;
   align-items: stretch !important;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .btn--sm {
@@ -2568,11 +2568,113 @@ html[data-plan="premium"] .winners-neon {
 }
 
 .ach-heading {
-  margin: 0.2rem 0 -0.2rem;
+  margin: 0;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--text);
+}
+
+.ach-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.2rem 0 -0.2rem;
+}
+
+.ach-section-head__sub {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.challenge__note {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 0.05rem;
+}
+
+/* Karta štatistík (kroky / kalórie / BMI) */
+.stats-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.stats-card__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.9rem 0.4rem;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  text-align: center;
+}
+
+.stats-card__val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent-light);
+  line-height: 1.1;
+}
+
+.stats-card__lbl {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+
+.stats-card__hint {
+  margin: -0.3rem 0 0;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.edit-form__row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.edit-form__note {
+  margin: 0.2rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+/* Profil – scrollovateľný obsah + pevná pätička s tlačidlami */
+#profile-edit-modal .history-modal__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+#profile-edit-modal .edit-actions {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+#profile-edit-modal .edit-actions .btn {
+  flex: 1 1 0;
+  width: auto;
+  margin: 0;
+}
+
+#profile-edit-modal .edit-actions__status {
+  flex-basis: 100%;
+  text-align: center;
 }
 
 /* Výzvy */

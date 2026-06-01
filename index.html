@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#558352" />
     <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css?v=game63" />
+    <link rel="stylesheet" href="styles.css?v=game68" />
     <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
@@ -229,17 +229,35 @@
             <p class="level-card__next" id="ach-level-next">Do ďalšieho levelu ti chýba 50 bodov</p>
           </div>
 
-          <h2 class="ach-heading" id="ach-challenges-title">Moje aktívne výzvy</h2>
+          <div class="ach-section-head">
+            <h2 class="ach-heading" id="ach-stats-title">Tvoje štatistiky</h2>
+            <span class="ach-section-head__sub" id="ach-stats-sub">dnes</span>
+          </div>
+          <div class="stats-card" id="health-stats">
+            <div class="stats-card__tile">
+              <span class="stats-card__val" id="stat-steps">—</span>
+              <span class="stats-card__lbl" id="stat-steps-lbl">krokov dnes</span>
+            </div>
+            <div class="stats-card__tile">
+              <span class="stats-card__val" id="stat-cal">—</span>
+              <span class="stats-card__lbl" id="stat-cal-lbl">kcal dnes</span>
+            </div>
+            <div class="stats-card__tile">
+              <span class="stats-card__val" id="stat-bmi">—</span>
+              <span class="stats-card__lbl" id="stat-bmi-lbl">BMI</span>
+            </div>
+          </div>
+          <p class="stats-card__hint" id="stats-hint" hidden></p>
+
+          <div class="ach-section-head">
+            <h2 class="ach-heading" id="ach-challenges-title">Výzvy</h2>
+            <span class="ach-section-head__sub" id="ach-challenges-sub"></span>
+          </div>
           <div class="challenges" id="ach-challenges"></div>
 
-          <h2 class="ach-heading" id="ach-available-title">Dostupné výzvy na prijatie</h2>
-          <div class="available-challenges" id="ach-available"></div>
-        </section>
-
-        <section class="panel panel--badges" id="panel-badges" aria-labelledby="nav-badges" hidden>
-          <div class="badges-hero">
-            <h2 class="badges-hero__title" id="badges-hero-title">Tvoja zbierka odznakov</h2>
-            <p class="badges-hero__sub" id="badges-hero-sub">0 / 9 odomknutých</p>
+          <div class="ach-section-head">
+            <h2 class="ach-heading" id="ach-badges-title">Odznaky</h2>
+            <span class="ach-section-head__sub" id="ach-badges-sub">0 / 9</span>
           </div>
           <div class="badges" id="ach-badges"></div>
         </section>
@@ -298,7 +316,6 @@
                 <span data-i18n="profile.notify">Notifikácie</span>
                 <input type="checkbox" id="setting-notify" checked />
               </label>
-              <p class="hint hint--notify" data-i18n="profile.notifyHint"></p>
             </li>
             <li>
               <!-- tmavý režim removed (fixed design) -->
@@ -330,10 +347,6 @@
         <button type="button" class="nav__item" id="nav-tickets" data-panel="tickets">
           <span class="nav__icon" aria-hidden="true">⚡</span>
           <span class="nav__label" data-i18n="nav.tickets">Výzvy</span>
-        </button>
-        <button type="button" class="nav__item" id="nav-badges" data-panel="badges">
-          <span class="nav__icon" aria-hidden="true">🎖️</span>
-          <span class="nav__label" data-i18n="nav.badges">Odznaky</span>
         </button>
         <button type="button" class="nav__item" id="nav-winners" data-panel="winners">
           <span class="nav__icon" aria-hidden="true">🏆</span>
@@ -440,13 +453,38 @@
               <span>Tel. číslo (nepovinné)</span>
               <input type="tel" id="edit-phone" class="edit-form__input" autocomplete="tel" />
             </label>
-          </div>
 
-          <div class="edit-actions">
-            <button type="button" class="btn btn--primary" id="profile-edit-save">Uložiť</button>
-            <button type="button" class="btn btn--ghost" id="profile-edit-cancel">Zrušiť</button>
-            <span class="edit-actions__status" id="profile-edit-status" aria-live="polite"></span>
+            <p class="edit-form__note" id="edit-stats-note">Nepovinné – pre presnejšie štatistiky (kalórie, kroky, BMI). Ukladá sa len v tvojom zariadení.</p>
+
+            <label class="edit-form__field">
+              <span>Pohlavie</span>
+              <select id="edit-gender" class="edit-form__input">
+                <option value="">Nechcem uviesť</option>
+                <option value="male">Muž</option>
+                <option value="female">Žena</option>
+              </select>
+            </label>
+            <div class="edit-form__row">
+              <label class="edit-form__field">
+                <span>Vek</span>
+                <input type="number" id="edit-age" class="edit-form__input" min="5" max="120" inputmode="numeric" placeholder="napr. 30" />
+              </label>
+              <label class="edit-form__field">
+                <span>Výška (cm)</span>
+                <input type="number" id="edit-height" class="edit-form__input" min="80" max="250" inputmode="numeric" placeholder="napr. 175" />
+              </label>
+              <label class="edit-form__field">
+                <span>Váha (kg)</span>
+                <input type="number" id="edit-weight" class="edit-form__input" min="20" max="300" inputmode="numeric" placeholder="napr. 75" />
+              </label>
+            </div>
           </div>
+        </div>
+
+        <div class="edit-actions">
+          <button type="button" class="btn btn--primary" id="profile-edit-save">Uložiť</button>
+          <button type="button" class="btn btn--ghost" id="profile-edit-cancel">Zrušiť</button>
+          <span class="edit-actions__status" id="profile-edit-status" aria-live="polite"></span>
         </div>
       </div>
     </div>
@@ -457,6 +495,6 @@
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/health-sync.js?v=2"></script>
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=37"></script>
   </body>
 </html>

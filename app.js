@@ -669,8 +669,15 @@ function computeAchievementStats() {
   const totalPoints = getTotalPointsAllTime();
   const currentStreak = computeGoalStreakDays();
   const longestStreak = computeLongestGoalStreak();
-  const weekKm = getPeriodHistory("week").reduce((s, h) => s + Number(h.km || 0), 0);
-  const monthGoalDays = getPeriodHistory("month").filter((h) => qualifiesGreenDot(h.km)).length;
+  const week = getPeriodHistory("week");
+  const weekKm = week.reduce((s, h) => s + Number(h.km || 0), 0);
+  const weekendKm = week.reduce((sum, h) => {
+    const wd = weekdayMonIndex(new Date(`${h.date}T12:00:00`));
+    return wd >= 5 ? sum + Number(h.km || 0) : sum; // 5=sobota, 6=nedeľa
+  }, 0);
+  const month = getPeriodHistory("month");
+  const monthKm = month.reduce((s, h) => s + Number(h.km || 0), 0);
+  const monthGoalDays = month.filter((h) => qualifiesGreenDot(h.km)).length;
   return {
     totalKm,
     activeDays,
@@ -680,6 +687,8 @@ function computeAchievementStats() {
     currentStreak,
     longestStreak,
     weekKm,
+    weekendKm,
+    monthKm,
     monthGoalDays,
   };
 }
@@ -688,49 +697,78 @@ function renderChallenges(s) {
   const host = document.getElementById("ach-challenges");
   if (!host) return;
 
-  const weekTarget = Math.max(20, Math.round(state.goalKm * 5));
+  // Opakovateľné, časovo ohraničené výzvy – plnia sa automaticky (žiadne "Prijať").
+  // Žiadne série (tie sú v odznakoch), len vzdialenosť/počet v okne týždeň/mesiac.
+  const kmFmt = (v) => v.toFixed(1);
+  const numFmt = (v) => String(v);
   const items = [
     {
       icon: "🏃",
-      title: achLang("Týždenná porcia km", "Weekly distance"),
+      title: achLang("Týždenný nájazd", "Weekly distance"),
+      note: achLang("tento týždeň", "this week"),
       cur: s.weekKm,
-      max: weekTarget,
+      max: 50,
       unit: "km",
-      fmt: (v) => v.toFixed(1),
+      fmt: kmFmt,
+    },
+    {
+      icon: "⛰️",
+      title: achLang("Víkendový bojovník", "Weekend warrior"),
+      note: achLang("sobota + nedeľa", "Sat + Sun"),
+      cur: s.weekendKm,
+      max: 30,
+      unit: "km",
+      fmt: kmFmt,
     },
     {
       icon: "🎯",
-      title: achLang("Splnené ciele tento mesiac", "Goals met this month"),
+      title: achLang("Mesačné ciele", "Monthly goals"),
+      note: achLang("splnené dni v mesiaci", "goal days this month"),
       cur: s.monthGoalDays,
       max: 20,
       unit: achLang("dní", "days"),
-      fmt: (v) => String(v),
+      fmt: numFmt,
     },
     {
-      icon: "🔥",
-      title: achLang("Séria v rade", "Streak in a row"),
-      cur: s.currentStreak,
-      max: 7,
-      unit: achLang("dní", "days"),
-      fmt: (v) => String(v),
+      icon: "🥾",
+      title: achLang("Mesačný nájazd", "Monthly distance"),
+      note: achLang("tento mesiac", "this month"),
+      cur: s.monthKm,
+      max: 150,
+      unit: "km",
+      fmt: kmFmt,
     },
   ];
 
-  host.innerHTML = items
-    .map((c) => {
-      const pct = c.max > 0 ? Math.min(100, Math.round((c.cur / c.max) * 100)) : 0;
-      const done = c.cur >= c.max;
-      return `
-        <div class="challenge${done ? " challenge--done" : ""}">
+  // splnené navrch, potom podľa blízkosti k cieľu
+  const withMeta = items.map((c) => {
+    const pct = c.max > 0 ? Math.min(100, Math.round((c.cur / c.max) * 100)) : 0;
+    return { ...c, pct, done: c.cur >= c.max };
+  });
+  withMeta.sort((a, b) => {
+    if (a.done !== b.done) return a.done ? -1 : 1;
+    return b.pct - a.pct;
+  });
+
+  host.innerHTML = withMeta
+    .map(
+      (c) => `
+        <div class="challenge${c.done ? " challenge--done" : ""}">
           <div class="challenge__head">
             <span class="challenge__icon">${c.icon}</span>
-            <span class="challenge__title">${c.title}</span>
-            <span class="challenge__val">${c.fmt(c.cur)} / ${c.max} ${c.unit}${done ? " ✓" : ""}</span>
+            <span class="challenge__title">${c.title}<span class="challenge__note">${c.note}</span></span>
+            <span class="challenge__val">${c.fmt(c.cur)} / ${c.max} ${c.unit}${c.done ? " ✓" : ""}</span>
           </div>
-          <div class="challenge__bar"><span class="challenge__fill" style="width:${pct}%"></span></div>
-        </div>`;
-    })
+          <div class="challenge__bar"><span class="challenge__fill" style="width:${c.pct}%"></span></div>
+        </div>`
+    )
     .join("");
+
+  const doneCount = withMeta.filter((c) => c.done).length;
+  setTextById(
+    "ach-challenges-sub",
+    achLang(`${doneCount} / ${withMeta.length} splnených`, `${doneCount} / ${withMeta.length} done`)
+  );
 }
 
 function renderBadges(s) {
@@ -832,7 +870,10 @@ function renderBadges(s) {
 
   const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-  host.innerHTML = items
+  // získané navrch, zamknuté dole
+  const sorted = [...items].sort((a, b) => (a.done === b.done ? 0 : a.done ? -1 : 1));
+
+  host.innerHTML = sorted
     .map(
       (b) => `
         <div class="badge${b.done ? " badge--done" : " badge--locked"}" data-fact="${esc(b.fact)}">
@@ -844,11 +885,7 @@ function renderBadges(s) {
     .join("");
 
   const doneCount = items.filter((b) => b.done).length;
-  setTextById("badges-hero-title", achLang("Tvoja zbierka odznakov", "Your badge collection"));
-  setTextById(
-    "badges-hero-sub",
-    achLang(`${doneCount} / ${items.length} odomknutých`, `${doneCount} / ${items.length} unlocked`)
-  );
+  setTextById("ach-badges-sub", `${doneCount} / ${items.length}`);
 }
 
 function openBadgeOverlay(badgeEl) {
@@ -902,58 +939,6 @@ function closeBadgeOverlay() {
   setTimeout(finish, 600); // poistka, ak by animationend nezbehol
 }
 
-function getAvailableChallenges() {
-  return [
-    { id: "kamzik", icon: "🐐", title: achLang("Tatranský kamzík", "Tatra chamois"), desc: achLang("Prejdi 15 km za jeden deň", "Walk 15 km in one day") },
-    { id: "vikend", icon: "⛰️", title: achLang("Víkendový bojovník", "Weekend warrior"), desc: achLang("Cez víkend prejdi 30 km", "Walk 30 km over the weekend") },
-    { id: "ranne-vtaca", icon: "🌅", title: achLang("Ranné vtáča", "Early bird"), desc: achLang("7 dní po sebe splň cieľ", "Hit your goal 7 days in a row") },
-    { id: "stovka", icon: "💯", title: achLang("Stovka za mesiac", "Hundred a month"), desc: achLang("Prejdi 100 km tento mesiac", "Walk 100 km this month") },
-  ];
-}
-
-function getAcceptedChallenges() {
-  try {
-    return JSON.parse(localStorage.getItem("chodza-accepted-challenges") || "[]");
-  } catch (_) {
-    return [];
-  }
-}
-
-function setAcceptedChallenges(ids) {
-  try {
-    localStorage.setItem("chodza-accepted-challenges", JSON.stringify(ids));
-  } catch (_) {}
-}
-
-function toggleAcceptedChallenge(id) {
-  const accepted = getAcceptedChallenges();
-  const idx = accepted.indexOf(id);
-  if (idx >= 0) accepted.splice(idx, 1);
-  else accepted.push(id);
-  setAcceptedChallenges(accepted);
-  renderAvailableChallenges();
-}
-
-function renderAvailableChallenges() {
-  const host = document.getElementById("ach-available");
-  if (!host) return;
-  const accepted = getAcceptedChallenges();
-
-  host.innerHTML = getAvailableChallenges().map((c) => {
-    const isOn = accepted.includes(c.id);
-    const btnLabel = isOn ? achLang("Prijaté ✓", "Accepted ✓") : achLang("Prijať", "Accept");
-    return `
-      <div class="avail${isOn ? " avail--on" : ""}">
-        <span class="avail__icon">${c.icon}</span>
-        <div class="avail__text">
-          <span class="avail__title">${c.title}</span>
-          <span class="avail__desc">${c.desc}</span>
-        </div>
-        <button type="button" class="avail__btn${isOn ? " avail__btn--on" : ""}" data-challenge="${c.id}">${btnLabel}</button>
-      </div>`;
-  }).join("");
-}
-
 function renderTickets() {
   if (!document.getElementById("panel-tickets")) return;
 
@@ -980,12 +965,74 @@ function renderTickets() {
       `${toNext} points to level ${level + 1}`
     )
   );
-  setTextById("ach-challenges-title", achLang("Moje aktívne výzvy", "My active challenges"));
-  setTextById("ach-available-title", achLang("Dostupné výzvy na prijatie", "Challenges to accept"));
+  setTextById("ach-challenges-title", achLang("Výzvy", "Challenges"));
+  setTextById("ach-badges-title", achLang("Odznaky", "Badges"));
 
   renderChallenges(s);
-  renderAvailableChallenges();
   renderBadges(s);
+  renderHealthStats();
+}
+
+function bmiCategory(bmi) {
+  if (bmi < 18.5) return achLang("podváha", "underweight");
+  if (bmi < 25) return achLang("norma", "normal");
+  if (bmi < 30) return achLang("nadváha", "overweight");
+  return achLang("obezita", "obese");
+}
+
+function renderHealthStats() {
+  const host = document.getElementById("health-stats");
+  if (!host) return;
+
+  const user = typeof ChodzaAuth !== "undefined" ? ChodzaAuth.getCurrentUser() : null;
+  const km = Number(state.kmToday || 0);
+  const weight = Number(user?.weightKg || 0);
+  const height = Number(user?.heightCm || 0);
+  const gender = user?.gender || "";
+
+  setTextById("ach-stats-title", achLang("Tvoje štatistiky", "Your stats"));
+  setTextById("ach-stats-sub", achLang("dnes", "today"));
+  setTextById("stat-steps-lbl", achLang("krokov dnes", "steps today"));
+  setTextById("stat-cal-lbl", achLang("kcal dnes", "kcal today"));
+
+  // Kroky – dĺžka kroku z výšky (a pohlavia), inak priemer 0,74 m
+  let stepLenM = 0.74;
+  if (height > 0) {
+    const f = gender === "female" ? 0.413 : gender === "male" ? 0.415 : 0.414;
+    stepLenM = (height * f) / 100;
+  }
+  const steps = km > 0 ? Math.round((km * 1000) / stepLenM) : 0;
+  setTextById("stat-steps", steps > 0 ? steps.toLocaleString(loc()) : "—");
+
+  // Kalórie – približne 0,5 kcal na kg na km
+  if (weight > 0 && km > 0) {
+    setTextById("stat-cal", String(Math.round(weight * km * 0.5)));
+  } else {
+    setTextById("stat-cal", "—");
+  }
+
+  // BMI – z výšky a váhy
+  if (weight > 0 && height > 0) {
+    const m = height / 100;
+    const bmi = weight / (m * m);
+    setTextById("stat-bmi", bmi.toFixed(1));
+    setTextById("stat-bmi-lbl", bmiCategory(bmi));
+  } else {
+    setTextById("stat-bmi", "—");
+    setTextById("stat-bmi-lbl", "BMI");
+  }
+
+  const hint = document.getElementById("stats-hint");
+  if (hint) {
+    const missing = !(weight > 0 && height > 0);
+    hint.hidden = !missing;
+    if (missing) {
+      hint.textContent = achLang(
+        "Doplň výšku a váhu v profile (ikona ceruzky) pre presné kalórie a BMI.",
+        "Add your height and weight in the profile (pencil icon) for accurate calories and BMI."
+      );
+    }
+  }
 }
 
 function currentMonthKey() {
@@ -1527,13 +1574,12 @@ function showPanel(name) {
     n.classList.toggle("nav__item--active", n.dataset.panel === name);
   });
 
-  const isAch = name === "tickets" || name === "badges";
-  document.querySelector(".header")?.classList.toggle("header--tickets", isAch);
-  document.querySelector(".main")?.classList.toggle("main--tickets", isAch);
+  document.querySelector(".header")?.classList.toggle("header--tickets", name === "tickets");
+  document.querySelector(".main")?.classList.toggle("main--tickets", name === "tickets");
 
   document.getElementById("page-title").textContent = t(`nav.${name}`);
 
-  if (name === "home" || name === "tickets" || name === "badges" || name === "profile") {
+  if (name === "home" || name === "tickets" || name === "profile") {
     refreshAfterAdminSettings();
   }
 
@@ -1827,11 +1873,6 @@ function init() {
     btn.addEventListener("click", () => showPanel(btn.dataset.panel));
   });
 
-  document.getElementById("ach-available")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-challenge]");
-    if (btn) toggleAcceptedChallenge(btn.dataset.challenge);
-  });
-
   document.getElementById("ach-badges")?.addEventListener("click", (e) => {
     const badge = e.target.closest(".badge");
     if (badge) openBadgeOverlay(badge);
@@ -1946,6 +1987,11 @@ function init() {
     document.getElementById("edit-username").value = user.username ? `@${user.username}` : "";
     document.getElementById("edit-city").value = user.city || "";
     document.getElementById("edit-phone").value = user.phone || "";
+    const gEl = document.getElementById("edit-gender");
+    if (gEl) gEl.value = user.gender || "";
+    document.getElementById("edit-age").value = user.age || "";
+    document.getElementById("edit-height").value = user.heightCm || "";
+    document.getElementById("edit-weight").value = user.weightKg || "";
     if (editStatus) editStatus.textContent = "";
     editModal.hidden = false;
   }
@@ -1966,11 +2012,22 @@ function init() {
     if (typeof ChodzaAuth === "undefined") return;
     const user = ChodzaAuth.getCurrentUser();
     if (!user) return;
+    const numOrNull = (id, min, max) => {
+      const raw = String(document.getElementById(id)?.value || "").trim();
+      if (raw === "") return null;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < min || n > max) return null;
+      return n;
+    };
     const patch = {
       firstName: String(document.getElementById("edit-firstName").value || "").trim(),
       lastName: String(document.getElementById("edit-lastName").value || "").trim(),
       city: String(document.getElementById("edit-city").value || "").trim(),
       phone: String(document.getElementById("edit-phone").value || "").trim(),
+      gender: String(document.getElementById("edit-gender")?.value || ""),
+      age: numOrNull("edit-age", 5, 120),
+      heightCm: numOrNull("edit-height", 80, 250),
+      weightKg: numOrNull("edit-weight", 20, 300),
     };
     const res = ChodzaAuth.updateProfile(user.email, patch);
     if (!res?.ok) {
@@ -1979,6 +2036,7 @@ function init() {
     }
     applyUserProfile();
     updateHomeTopbar();
+    renderHealthStats();
     if (editStatus) editStatus.textContent = "Uložené ✓";
     setTimeout(() => closeProfileEditModal(), 450);
   });

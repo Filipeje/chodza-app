@@ -27,6 +27,16 @@ Simulácia pity timera: `npm run draw:sim` (vyžaduje Node + `npx tsx`) alebo `n
 2. Na mobile: v Chrome → DevTools → zariadenie, alebo nahrajte na statický hosting.
 3. PWA: z Chrome menu „Pridať na plochu“ (vyžaduje HTTPS alebo localhost).
 
+## Jedlo – kalórie z fotky
+
+V dolnej navigácii je záložka **Jedlo**:
+
+1. Raz nastavte bezplatný [Gemini API kľúč](https://aistudio.google.com/apikey) (uloží sa len v localStorage).
+2. Odfotťe tanier (alebo vyberte fotku z galérie).
+3. AI vráti odhad kalórií, makrá a rozpis položiek; jedlá sa sčítajú za deň.
+
+Odhad je orientačný (viditeľná porcia, nie laboratórne meranie).
+
 ## Ďalší krok (odporúčané)
 
 1. Nainštalujte Node.js → `npm create vite` alebo Capacitor pre Health Connect / HealthKit.

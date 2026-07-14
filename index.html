@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#558352" />
     <meta name="description" content="Športová chôdza – denný cieľ, mesačný kôš, profil" data-i18n="meta.description" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css?v=game68" />
+    <link rel="stylesheet" href="styles.css?v=game69" />
     <title data-i18n="app.title">Chôdza</title>
   </head>
   <body>
@@ -14,6 +14,12 @@
       <input
         type="file"
         id="avatar-file"
+        accept="image/*"
+        class="visually-hidden"
+      />
+      <input
+        type="file"
+        id="food-file"
         accept="image/*"
         class="visually-hidden"
       />
@@ -273,6 +279,100 @@
           <p class="hint" id="winners-hint" data-i18n="winners.hint"></p>
         </section>
 
+        <section class="panel panel--food" id="panel-food" aria-labelledby="nav-food" hidden>
+          <div class="food-summary" aria-live="polite">
+            <div class="food-summary__main">
+              <p class="food-summary__label" data-i18n="food.today">Dnes zjedené</p>
+              <p class="food-summary__kcal">
+                <strong id="food-today-kcal">0</strong>
+                <span>kcal</span>
+              </p>
+            </div>
+            <p class="food-summary__count" id="food-today-count">0 jedál</p>
+          </div>
+
+          <div class="food-camera">
+            <div class="food-camera__frame">
+              <img id="food-preview" class="food-camera__preview" alt="" hidden />
+              <div class="food-camera__placeholder" id="food-camera-placeholder">
+                <span class="food-camera__icon" aria-hidden="true">📷</span>
+                <p data-i18n="food.hint">Odfot tanier a hneď uvidíš odhad kalórií</p>
+              </div>
+              <div class="food-analyzing" id="food-analyzing" hidden>
+                <div class="food-analyzing__spin" aria-hidden="true"></div>
+                <p data-i18n="food.analyzing">Počítam kalórie…</p>
+              </div>
+            </div>
+            <div class="food-camera__actions">
+              <button type="button" class="btn btn--primary food-camera__shot" id="food-capture-btn" data-i18n="food.capture">
+                Odfotiť jedlo
+              </button>
+              <button type="button" class="btn btn--ghost" id="food-gallery-btn" data-i18n="food.gallery">
+                Galéria
+              </button>
+            </div>
+            <p class="food-status" id="food-status" hidden role="status"></p>
+            <p class="food-ready-hint" id="food-ready-hint" hidden data-i18n="food.ready">
+              AI je pripravená – odfot jedlo.
+            </p>
+          </div>
+
+          <article class="food-result" id="food-result" hidden>
+            <div class="food-result__top">
+              <img id="food-result-img" class="food-result__img" alt="" hidden />
+              <div>
+                <h2 class="food-result__name" id="food-result-name">—</h2>
+                <p class="food-result__kcal" id="food-result-kcal">0 kcal</p>
+                <p class="food-result__macros" id="food-result-macros"></p>
+              </div>
+            </div>
+            <ul class="food-result__items" id="food-result-items"></ul>
+            <p class="food-result__notes" id="food-result-notes"></p>
+          </article>
+
+          <div class="food-setup" id="food-setup">
+            <h3 class="food-setup__title" data-i18n="food.setupTitle">Bezplatné AI (Gemini)</h3>
+            <p class="food-setup__text" data-i18n="food.setupText">
+              Na odhad kalórií z fotky potrebuješ bezplatný kľúč od Google (AI Studio). Trvá ~30 sekúnd.
+            </p>
+            <ol class="food-setup__steps">
+              <li>
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" data-i18n="food.setupLink">
+                  Otvor AI Studio a vytvor API key
+                </a>
+              </li>
+              <li data-i18n="food.setupPaste">Vlož kľúč sem a ulož – zostane len v tvojom telefóne.</li>
+            </ol>
+            <label class="food-setup__field">
+              <span data-i18n="food.apiKey">Gemini API kľúč</span>
+              <input
+                type="password"
+                id="food-api-key"
+                class="food-setup__input"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="AIza…"
+              />
+            </label>
+            <div class="food-setup__actions">
+              <button type="button" class="btn btn--primary btn--sm" id="food-save-key" data-i18n="food.saveKey">
+                Uložiť kľúč
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm" id="food-clear-key" hidden data-i18n="food.clearKey">
+                Vymazať
+              </button>
+            </div>
+          </div>
+          <button type="button" class="food-toggle-setup" id="food-toggle-setup" data-i18n="food.toggleSetup">
+            Nastavenie AI kľúča
+          </button>
+
+          <div class="food-history-wrap">
+            <h3 class="food-history__title" data-i18n="food.history">Dnešné jedlá</h3>
+            <div class="food-history" id="food-history"></div>
+          </div>
+        </section>
+
         <section class="panel" id="panel-profile" aria-labelledby="nav-profile" hidden>
           <ul class="settings-list">
             <li>
@@ -343,6 +443,10 @@
         <button type="button" class="nav__item nav__item--active" id="nav-home" data-panel="home">
           <span class="nav__icon" aria-hidden="true">◎</span>
           <span class="nav__label" data-i18n="nav.home">Dnes</span>
+        </button>
+        <button type="button" class="nav__item" id="nav-food" data-panel="food">
+          <span class="nav__icon" aria-hidden="true">🍽</span>
+          <span class="nav__label" data-i18n="nav.food">Jedlo</span>
         </button>
         <button type="button" class="nav__item" id="nav-tickets" data-panel="tickets">
           <span class="nav__icon" aria-hidden="true">⚡</span>
@@ -495,6 +599,7 @@
     <script src="scripts/i18n.js"></script>
     <script src="scripts/settings-store.js?v=2"></script>
     <script src="scripts/health-sync.js?v=2"></script>
-    <script src="app.js?v=37"></script>
+    <script src="scripts/food-scan.js?v=1"></script>
+    <script src="app.js?v=38"></script>
   </body>
 </html>

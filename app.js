@@ -1579,7 +1579,7 @@ function showPanel(name) {
 
   document.getElementById("page-title").textContent = t(`nav.${name}`);
 
-  if (name === "home" || name === "tickets" || name === "profile") {
+  if (name === "home" || name === "tickets" || name === "profile" || name === "food") {
     refreshAfterAdminSettings();
   }
 
@@ -1599,6 +1599,9 @@ function showPanel(name) {
     updateWeeklyBars();
     updateDrawCountdown();
     updatePeriodStats();
+  } else if (name === "food") {
+    document.getElementById("today-date").textContent = "";
+    if (typeof ChodzaFoodScan !== "undefined") ChodzaFoodScan.refresh();
   } else if (name === "tickets") {
     document.getElementById("today-date").textContent = "";
   } else {
@@ -1800,6 +1803,7 @@ function init() {
   applyPlanTheme();
   updatePlanNotice();
   initHealthSync();
+  if (typeof ChodzaFoodScan !== "undefined") ChodzaFoodScan.init();
   updateAdminLinkHref();
   updateWeeklyBars();
 

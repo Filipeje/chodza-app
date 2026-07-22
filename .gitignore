@@ -7,6 +7,3 @@ node_modules/
 dist/
 .vscode/
 .idea/
-
-# samostatné git repo pre kurzova-tabula
-kurzova-tabula/.git/

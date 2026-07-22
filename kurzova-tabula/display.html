@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#071311" />
+    <title>Kurzový lístok</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/display.css" />
+  </head>
+  <body>
+    <div class="board" id="board" hidden>
+      <header class="board__header">
+        <div class="board__title-wrap">
+          <p class="board__eyebrow">Kurzový lístok</p>
+          <h1 class="board__title" id="company-name">—</h1>
+        </div>
+        <div class="board__clock" id="clock-wrap" hidden>
+          <p class="board__date" id="board-date"></p>
+          <p class="board__time" id="board-time"></p>
+        </div>
+      </header>
+
+      <div class="board__table-head" aria-hidden="true">
+        <span>Mena</span>
+        <span>Nákup</span>
+        <span>Predaj</span>
+      </div>
+
+      <div class="board__rates" id="rates" role="table" aria-label="Menové kurzy"></div>
+
+      <footer class="board__footer" id="footer" hidden></footer>
+    </div>
+
+    <div class="empty" id="empty">
+      <h1>Tabuľa sa nenašla</h1>
+      <p>
+        Otvorte link z adminu, alebo najprv vytvorte účet na
+        <a href="index.html">úvodnej stránke</a>.
+      </p>
+    </div>
+
+    <script src="js/store.js"></script>
+    <script src="js/display.js"></script>
+  </body>
+</html>
